@@ -16,6 +16,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const MAX_TTS_LENGTH = 800; // keep TTS requests short and responsive
+    const trimmedText = body.text.trim();
+    if (trimmedText.length > MAX_TTS_LENGTH) {
+      return NextResponse.json(
+        {
+          error:
+            "Text is too long to read out in a single request. Please shorten your question or answer.",
+        },
+        { status: 400 }
+      );
+    }
+
     const apiKey = process.env.ELEVENLABS_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
@@ -51,7 +63,7 @@ export async function POST(request: NextRequest) {
         Accept: "audio/mpeg",
       },
       body: JSON.stringify({
-        text: body.text,
+        text: trimmedText,
         model_id: "eleven_multilingual_v2",
         voice_settings: {
           stability: 0.4,

@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { countryGuides } from "../../../data/countryGuides";
+import { resources } from "../../../data/resources";
+import { servicesDirectory } from "../../../data/servicesDirectory";
 
 // Simple types for the conversation API. We can later extend this when wiring Gemini.
 
@@ -34,6 +37,214 @@ interface ConversationAnswer {
     mode: string;
     offlineFallbackUsed: boolean;
   };
+}
+
+async function tryGeminiAnswer(
+  body: ConversationRequestBody
+): Promise<ConversationAnswer | null> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+
+  const {
+    messages,
+    language = "en",
+    countryCode,
+    mode = "general",
+    crisisContext,
+  } = body;
+
+  const isFrench = language === "fr";
+
+  const baseSafetyNoticeEn =
+    "This information is educational and not a medical diagnosis. If you feel very unwell, have severe pain, heavy bleeding, or trouble breathing, go to the nearest clinic or hospital immediately.";
+  const baseSafetyNoticeFr =
+    "Ces informations sont éducatives et ne remplacent pas un diagnostic médical. Si vous vous sentez très mal, avez de fortes douleurs, des saignements importants ou des difficultés à respirer, rendez-vous immédiatement dans la clinique ou l'hôpital le plus proche.";
+
+  const safetyNotice = isFrench ? baseSafetyNoticeFr : baseSafetyNoticeEn;
+
+  const guide = countryCode
+    ? countryGuides.find((c) => c.code === countryCode)
+    : undefined;
+
+  const countryGuideSnippet = guide
+    ? guide.prep.steps
+        .slice(0, 2)
+        .map((s) => `- ${s.title}: ${s.detail}`)
+        .join("\n")
+    : "";
+
+  const resourcesSnippet = resources
+    .slice(0, 3)
+    .map((cat) => {
+      const item = cat.items[0];
+      if (!item) return "";
+      const summary = language === "fr" ? item.summaryFr : item.summaryEn;
+      return `- ${item.title}: ${summary}`;
+    })
+    .filter(Boolean)
+    .join("\n");
+
+  const crisisSnippet = crisisContext
+    ? `Crisis context: timeSince=${crisisContext.timeSince}, exposureType=${crisisContext.exposureType}, condomUsed=${crisisContext.condomUsed}, onPrep=${crisisContext.onPrep}.`
+    : "";
+
+  const localServicesSnippet = countryCode
+    ? servicesDirectory
+        .filter((s) => s.country === countryCode)
+        .slice(0, 5)
+        .map((s) => {
+          const notes = language === "fr" ? s.notesFr : s.notesEn;
+          const phone = s.phone ? ` | phone: ${s.phone}` : "";
+          const verified = s.verifiedAt
+            ? language === "fr"
+              ? ` | vérifié le ${s.verifiedAt} (${s.verifiedBy ?? "inconnu"})`
+              : ` | verified at ${s.verifiedAt} (${s.verifiedBy ?? "unknown"})`
+            : "";
+          return `- ${s.name} (${s.city}): ${notes}${phone}${verified}`;
+        })
+        .join("\n")
+    : "";
+
+  const lastUserMessage = [...messages]
+    .slice(-20) // cap conversation length for safety
+    .reverse()
+    .find((m) => m.role === "user");
+
+  // Truncate very long user content to avoid sending excessive context to Gemini
+  const rawUserContent = lastUserMessage?.content ?? "";
+  const userContent =
+    rawUserContent.length > 2000
+      ? `${rawUserContent.slice(0, 2000)}…`
+      : rawUserContent;
+
+  const systemPrompt = isFrench
+    ? `Tu es un guide numérique en santé sexuelle et prévention du VIH pour des personnes vivant en Afrique. Tu dois :
+- Utiliser un langage simple, sans jugement, adapté à des personnes sans formation médicale.
+- Fournir des explications claires sur le VIH, la PrEP, la PEP, le dépistage, les IST et la santé sexuelle.
+- Ne pas poser de diagnostic et ne pas promettre de résultat de test.
+- Rappeler que les informations ne remplacent pas une consultation médicale et encourager la consultation d'un soignant local.
+- Respecter la confidentialité, éviter les termes stigmatisants et ne pas décrire de contenu graphique.
+
+FORMAT DE RÉPONSE :
+- Réponds en AU PLUS 4 à 5 courtes sections, adaptées à un écran de téléphone.
+- Commence chaque section par un titre court en gras ou clair (par exemple : "1. PEP dans les 72 heures").
+- Utilise des phrases courtes (2–3 lignes maximum par section) et des puces simples quand c'est utile.
+- Va droit au but sur ce que la personne peut faire MAINTENANT, dans son pays.
+
+Contexte pays (si disponible) :
+${countryGuideSnippet || "(aucun contexte pays spécifique)"}
+
+Ressources éducatives internes (résumés) :
+${resourcesSnippet}
+
+${crisisSnippet}
+
+Services locaux (à privilégier dans tes conseils quand c'est pertinent) :
+${localServicesSnippet || "(pas encore de services locaux listés)"}
+
+Réponds UNIQUEMENT en français.`
+    : `You are a digital sexual health and HIV prevention guide for people in African countries. You must:
+- Use simple, non-judgmental language suitable for non-medical users.
+- Give clear explanations about HIV, PrEP, PEP, testing, STIs, consent, relationships, and mental health.
+- Not give a medical diagnosis and not promise any specific test result.
+- Remind users that this does not replace seeing a clinician, and encourage local care when needed.
+- Respect privacy, avoid stigmatizing language, and avoid any graphic descriptions.
+
+ANSWER FORMAT:
+- Reply in NO MORE THAN 4 to 5 short sections suitable for a phone screen.
+- Start each section with a short, clear heading (e.g. "1. PEP in the first 72 hours").
+- Use short sentences (2–3 lines per section) and simple bullet points where helpful.
+- Focus on what the person can do NOW, in their country and context.
+
+Country context (if available):
+${countryGuideSnippet || "(no specific country context)"}
+
+Internal educational resources (summaries):
+${resourcesSnippet}
+
+${crisisSnippet}
+
+Local services (prefer mentioning these when relevant to care access):
+${localServicesSnippet || "(no specific local services listed yet)"}
+
+Reply ONLY in ${isFrench ? "French" : "English"}.`;
+
+  const modelName = "gemini-2.5-flash";
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+
+  const payload = {
+    contents: [
+      {
+        role: "user",
+        parts: [
+          { text: systemPrompt },
+          {
+            text: `User question and context (mode=${mode}, language=${language}, countryCode=${countryCode ?? "unknown"}):\n${userContent}`,
+          },
+        ],
+      },
+    ],
+  };
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      console.error("Gemini API error", await res.text());
+      return null;
+    }
+
+    const data = (await res.json()) as any;
+    const candidate = data.candidates?.[0];
+    const text =
+      candidate?.content?.parts
+        ?.map((p: any) => p.text)
+        .filter(Boolean)
+        .join(" ") ?? "";
+
+    if (!text) {
+      return null;
+    }
+
+    const suggestions = isFrench
+      ? [
+          "Explique-moi une autre option de prévention adaptée à ma situation.",
+          "Aide-moi à préparer ce que je peux dire à la clinique.",
+          "Dis-moi quand refaire un test de dépistage après cette situation.",
+        ]
+      : [
+          "Suggest another HIV prevention option that could fit my situation.",
+          "Help me practice what to say when I get to the clinic.",
+          "Tell me when I should plan follow-up HIV tests after this.",
+        ];
+
+    console.log("[conversation] Using Gemini answer", {
+      language,
+      countryCode,
+      mode,
+    });
+
+    return {
+      answer: text,
+      suggestions,
+      safetyNotice,
+      meta: {
+        language,
+        countryCode,
+        mode,
+        offlineFallbackUsed: false,
+      },
+    };
+  } catch (error) {
+    console.error("Gemini call failed", error);
+    return null;
+  }
 }
 
 function buildMockAnswer({
@@ -180,6 +391,12 @@ function buildMockAnswer({
   const intentHint = (() => {
     const text = lastUserMessage?.content.toLowerCase() ?? "";
 
+    if (text.includes("hiv")) {
+      return isFrench
+        ? "Vous posez une question sur le VIH. Le VIH est un virus qui attaque progressivement le système immunitaire. Sans traitement, il peut évoluer vers le sida, mais avec un traitement antirétroviral pris régulièrement, de nombreuses personnes vivent longtemps et en bonne santé, avec une charge virale indétectable et un risque très faible de transmettre le virus. Le VIH se transmet surtout par des rapports sexuels sans protection, le partage de seringues et certaines expositions au sang. Il ne se transmet pas par les câlins, les poignées de main, la nourriture ou les moustiques."
+        : "You are asking about HIV. HIV is a virus that gradually attacks the immune system. Without treatment it can lead to AIDS, but with regular antiretroviral treatment many people live long, healthy lives, often with an undetectable viral load and a very low risk of passing on the virus. HIV is mainly passed on through unprotected sex, sharing needles, and certain blood exposures. It is not spread by hugging, handshakes, food, or mosquito bites.";
+    }
+
     if (text.includes("pep")) {
       return isFrench
         ? "Vous parlez de la PEP. La PEP doit idéalement être commencée dans les 24 heures après une exposition possible au VIH, et au plus tard dans les 72 heures. Allez dès que possible dans une clinique ou un hôpital qui propose la PEP." 
@@ -265,7 +482,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const response = buildMockAnswer(body);
+    // Basic safety: cap conversation length and individual message sizes
+    const MAX_MESSAGES = 30;
+    const MAX_MESSAGE_LENGTH = 4000;
+
+    if (body.messages.length > MAX_MESSAGES) {
+      body.messages = body.messages.slice(-MAX_MESSAGES);
+    }
+
+    body.messages = body.messages.map((m) => ({
+      ...m,
+      content:
+        m.content.length > MAX_MESSAGE_LENGTH
+          ? `${m.content.slice(0, MAX_MESSAGE_LENGTH)}…`
+          : m.content,
+    }));
+
+    // Normalise language and mode values
+    if (body.language !== "en" && body.language !== "fr") {
+      body.language = "en";
+    }
+
+    const allowedModes: ConversationRequestBody["mode"][] = [
+      "general",
+      "crisis",
+      "navigator",
+      "resources",
+    ];
+    if (!allowedModes.includes(body.mode ?? "general")) {
+      body.mode = "general";
+    }
+    const geminiAnswer = await tryGeminiAnswer(body);
+    const response = geminiAnswer ?? buildMockAnswer(body);
     return NextResponse.json(response, { status: 200 });
   } catch (error) {
     console.error("/api/conversation error", error);

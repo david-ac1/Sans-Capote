@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSettings } from "../settings-provider";
 import { strings, t } from "../../i18n/strings";
 
@@ -38,11 +38,93 @@ export default function GuidePage() {
   const [error, setError] = useState<string | null>(null);
   const [voiceLoading, setVoiceLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const lastSpokenAssistantRef = useRef<string | null>(null);
 
   const latestAssistantMessage = useMemo(() => {
     const reversed = [...messages].reverse();
     return reversed.find((m) => m.role === "assistant")?.content ?? "";
   }, [messages]);
+
+  async function playAssistantMessage(text: string) {
+    if (!text || voiceLoading) return;
+
+    // Stop any existing audio
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current = null;
+    }
+
+    setVoiceLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/voice-out", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text,
+          language,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Voice request failed");
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.onended = () => {
+        setIsPlaying(false);
+        URL.revokeObjectURL(url);
+      };
+
+      await audio
+        .play()
+        .then(() => {
+          setIsPlaying(true);
+        })
+        .catch((err) => {
+          console.error("Audio play error", err);
+          setError(
+            language === "fr"
+              ? "Le son a été généré mais votre navigateur n'a pas pu le lire. Veuillez réessayer."
+              : "We generated audio but your browser could not play it. Please try again."
+          );
+        });
+    } catch (e) {
+      console.error(e);
+      setError(
+        language === "fr"
+          ? "Impossible de générer l'audio pour le moment. Veuillez réessayer dans un instant."
+          : "We could not generate audio right now. Please try again in a moment."
+      );
+    } finally {
+      setVoiceLoading(false);
+    }
+  }
+
+  function stopAssistantAudio() {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current = null;
+    }
+    setIsPlaying(false);
+  }
+
+  // Auto-play latest assistant answer once there is at least one user message
+  useEffect(() => {
+    const hasUserMessage = messages.some((m) => m.role === "user");
+    if (!hasUserMessage || !latestAssistantMessage) return;
+    if (lastSpokenAssistantRef.current === latestAssistantMessage) return;
+    lastSpokenAssistantRef.current = latestAssistantMessage;
+    void playAssistantMessage(latestAssistantMessage);
+    // we intentionally depend on latestAssistantMessage, language and messages
+  }, [latestAssistantMessage, language, messages]);
 
   async function sendMessage(text: string) {
     const trimmed = text.trim();
@@ -207,24 +289,39 @@ export default function GuidePage() {
         </div>
 
         <div className="flex-1 space-y-3 overflow-y-auto px-3 py-3 text-xs">
-          {messages.map((m, idx) => (
-            <div
-              key={idx}
-              className={
-                m.role === "assistant" ? "flex justify-start" : "flex justify-end"
-              }
-            >
+          {messages.map((m, idx) => {
+            const paragraphs = m.content.split(/\n\n+/);
+            return (
               <div
+                key={idx}
                 className={
-                  m.role === "assistant"
-                    ? "max-w-[80%] rounded-2xl rounded-bl-sm bg-zinc-800 px-3 py-2 text-zinc-100"
-                    : "max-w-[80%] rounded-2xl rounded-br-sm bg-emerald-500 px-3 py-2 text-zinc-950"
+                  m.role === "assistant" ? "flex justify-start" : "flex justify-end"
                 }
               >
-                <p>{m.content}</p>
+                <div
+                  className={
+                    m.role === "assistant"
+                      ? "max-w-[80%] rounded-2xl rounded-bl-sm bg-zinc-800 px-3 py-2 text-zinc-100"
+                      : "max-w-[80%] rounded-2xl rounded-br-sm bg-emerald-500 px-3 py-2 text-zinc-950"
+                  }
+                >
+                  {paragraphs.map((para, pIndex) => {
+                    const lines = para.split(/\n+/);
+                    return (
+                      <p key={pIndex} className={pIndex > 0 ? "mt-2" : undefined}>
+                        {lines.map((line, lIndex) => (
+                          <span key={lIndex}>
+                            {line}
+                            {lIndex < lines.length - 1 && <br />}
+                          </span>
+                        ))}
+                      </p>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {error && (
             <div className="rounded-lg border border-red-900 bg-red-950 px-3 py-2 text-[11px] text-red-100">
@@ -292,47 +389,23 @@ export default function GuidePage() {
             disabled={voiceLoading || !latestAssistantMessage}
             onClick={async () => {
               if (!latestAssistantMessage || voiceLoading) return;
-              setVoiceLoading(true);
-              setError(null);
-              try {
-                const res = await fetch("/api/voice-out", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    text: latestAssistantMessage,
-                    language,
-                  }),
-                });
-
-                if (!res.ok) {
-                  throw new Error("Voice request failed");
-                }
-
-                const blob = await res.blob();
-                const url = URL.createObjectURL(blob);
-                const audio = new Audio(url);
-                audio.play().catch((err) => {
-                  console.error("Audio play error", err);
-                  setError(
-                    language === "fr"
-                      ? "Le son a été généré mais votre navigateur n'a pas pu le lire. Veuillez réessayer."
-                      : "We generated audio but your browser could not play it. Please try again."
-                  );
-                });
-              } catch (e) {
-                console.error(e);
-                setError(
-                  language === "fr"
-                    ? "Impossible de générer l'audio pour le moment. Veuillez réessayer dans un instant."
-                    : "We could not generate audio right now. Please try again in a moment."
-                );
-              } finally {
-                setVoiceLoading(false);
+              if (isPlaying) {
+                stopAssistantAudio();
+              } else {
+                await playAssistantMessage(latestAssistantMessage);
               }
             }}
             className="flex h-9 w-9 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900 text-[11px] text-zinc-200 disabled:opacity-60"
           >
-            {voiceLoading ? "..." : language === "fr" ? "Lire" : "Play"}
+            {voiceLoading
+              ? "..."
+              : isPlaying
+              ? language === "fr"
+                ? "Pause"
+                : "Pause"
+              : language === "fr"
+              ? "Lire"
+              : "Play"}
           </button>
         </form>
       </section>
