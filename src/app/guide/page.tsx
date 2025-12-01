@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 type Role = "user" | "assistant";
 
@@ -31,6 +31,12 @@ export default function GuidePage() {
     "What are signs of STIs without showing pictures?",
   ]);
   const [error, setError] = useState<string | null>(null);
+  const [voiceLoading, setVoiceLoading] = useState(false);
+
+  const latestAssistantMessage = useMemo(() => {
+    const reversed = [...messages].reverse();
+    return reversed.find((m) => m.role === "assistant")?.content ?? "";
+  }, [messages]);
 
   async function sendMessage(text: string) {
     const trimmed = text.trim();
@@ -178,9 +184,46 @@ export default function GuidePage() {
           </button>
           <button
             type="button"
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900 text-[11px] text-zinc-200"
+            disabled={voiceLoading || !latestAssistantMessage}
+            onClick={async () => {
+              if (!latestAssistantMessage || voiceLoading) return;
+              setVoiceLoading(true);
+              setError(null);
+              try {
+                const res = await fetch("/api/voice-out", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    text: latestAssistantMessage,
+                    language: "en",
+                  }),
+                });
+
+                if (!res.ok) {
+                  throw new Error("Voice request failed");
+                }
+
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const audio = new Audio(url);
+                audio.play().catch((err) => {
+                  console.error("Audio play error", err);
+                  setError(
+                    "We generated audio but your browser could not play it. Please try again."
+                  );
+                });
+              } catch (e) {
+                console.error(e);
+                setError(
+                  "We could not generate audio right now. Please try again in a moment."
+                );
+              } finally {
+                setVoiceLoading(false);
+              }
+            }}
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900 text-[11px] text-zinc-200 disabled:opacity-60"
           >
-            Play
+            {voiceLoading ? "..." : "Play"}
           </button>
         </form>
       </section>
