@@ -3,9 +3,10 @@
 import { useMemo } from "react";
 import { useSettings } from "../settings-provider";
 import { countryGuides } from "../../data/countryGuides";
+import { strings, t } from "../../i18n/strings";
 
 export default function NavigatorPage() {
-  const { countryCode } = useSettings();
+  const { language, countryCode } = useSettings();
 
   const guide = useMemo(
     () => countryGuides.find((c) => c.code === countryCode) ?? countryGuides[0],
@@ -15,10 +16,11 @@ export default function NavigatorPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-4 bg-zinc-950 px-4 py-6 text-zinc-50">
       <header className="space-y-1">
-        <h1 className="text-xl font-semibold">HIV Prevention Navigator</h1>
+        <h1 className="text-xl font-semibold">
+          {t(strings.navigator.title, language)}
+        </h1>
         <p className="text-xs text-zinc-300">
-          Learn about PrEP, PEP, condoms, and HIV testing with guidance tailored
-          to {guide.name}.
+          {t(strings.navigator.subtitle, language)} {guide.name}.
         </p>
       </header>
 

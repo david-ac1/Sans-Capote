@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useSettings } from "../settings-provider";
+import { strings, t } from "../../i18n/strings";
 
 type Role = "user" | "assistant";
 
@@ -22,7 +23,9 @@ export default function GuidePage() {
     {
       role: "assistant",
       content:
-        "I'm your private guide for HIV prevention and sexual health in African contexts. You can ask about PrEP, PEP, testing, STIs, condoms, relationships, and more.",
+        language === "fr"
+          ? t(strings.guide.intro, "fr")
+          : t(strings.guide.intro, "en"),
     },
   ]);
   const [input, setInput] = useState("");
@@ -34,6 +37,7 @@ export default function GuidePage() {
   ]);
   const [error, setError] = useState<string | null>(null);
   const [voiceLoading, setVoiceLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
 
   const latestAssistantMessage = useMemo(() => {
     const reversed = [...messages].reverse();
@@ -79,7 +83,9 @@ export default function GuidePage() {
     } catch (e) {
       console.error(e);
       setError(
-        "We couldn't answer right now. Please check your connection and try again."
+        language === "fr"
+          ? "Nous ne pouvons pas répondre pour le moment. Vérifiez votre connexion et réessayez."
+          : "We couldn't answer right now. Please check your connection and try again."
       );
     } finally {
       setLoading(false);
@@ -95,21 +101,108 @@ export default function GuidePage() {
     void sendMessage(text);
   }
 
+  async function handleMicClick() {
+    if (typeof window === "undefined") return;
+
+    const SpeechRecognition =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      setError(
+        language === "fr"
+          ? "La reconnaissance vocale n'est pas disponible sur ce navigateur."
+          : "Voice input is not available on this browser."
+      );
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.lang = language === "fr" ? "fr-FR" : "en-US";
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 1;
+
+      let finalTranscript = "";
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        setError(null);
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error("Speech recognition error", event);
+        setIsListening(false);
+        if (event.error === "not-allowed") {
+          setError(
+            language === "fr"
+              ? "L'accès au micro a été refusé. Vérifiez les autorisations du navigateur."
+              : "Microphone access was denied. Please check your browser permissions."
+          );
+        } else if (event.error !== "no-speech") {
+          setError(
+            language === "fr"
+              ? "Un problème est survenu avec la reconnaissance vocale. Veuillez réessayer."
+              : "There was a problem with speech recognition. Please try again."
+          );
+        }
+      };
+
+      recognition.onresult = (event: any) => {
+        let interimTranscript = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript + " ";
+          } else {
+            interimTranscript += transcript;
+          }
+        }
+
+        const combined = `${finalTranscript}${interimTranscript}`.trim();
+        if (combined) {
+          setInput(combined);
+        }
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognition.start();
+    } catch (e) {
+      console.error("Speech recognition init error", e);
+      setIsListening(false);
+      setError(
+        language === "fr"
+          ? "Impossible de démarrer la reconnaissance vocale sur ce navigateur."
+          : "Could not start voice recognition on this browser."
+      );
+    }
+  }
+
   return (
     <main className="mx-auto flex min-h-screen max-w-xl flex-col bg-zinc-950 px-4 py-6 text-zinc-50">
       <header className="space-y-1 pb-3">
-        <h1 className="text-xl font-semibold">AI Sexual Health Guide</h1>
+        <h1 className="text-xl font-semibold">
+          {t(strings.guide.title, language)}
+        </h1>
         <p className="text-xs text-zinc-300">
-          Ask your questions in private. This space is stigma-free and does not
-          store your messages.
+          {t(strings.guide.intro, language)}
         </p>
       </header>
 
       <section className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900">
         <div className="flex items-center justify-between border-b border-zinc-800 px-3 py-2 text-[10px] text-zinc-300">
-          <span>Conversation</span>
+          <span>{language === "fr" ? "Conversation" : "Conversation"}</span>
           <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] text-emerald-300">
-            {loading ? "Thinking…" : "Online mode"}
+            {loading
+              ? language === "fr"
+                ? "Réflexion…"
+                : "Thinking…"
+              : language === "fr"
+              ? "Mode en ligne"
+              : "Online mode"}
           </span>
         </div>
 
@@ -142,7 +235,7 @@ export default function GuidePage() {
           {suggestions.length > 0 && (
             <div className="mt-2 space-y-1">
               <p className="text-[10px] font-semibold text-zinc-400">
-                Try one of these questions:
+                {t(strings.guide.examplesTitle, language)}
               </p>
               <div className="flex flex-wrap gap-2">
                 {suggestions.map((s) => (
@@ -166,15 +259,24 @@ export default function GuidePage() {
         >
           <button
             type="button"
+            onClick={handleMicClick}
             className="flex h-9 w-9 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900 text-[11px] text-zinc-200"
           >
-            Mic
+            {isListening
+              ? language === "fr"
+                ? "Rec"
+                : "Rec"
+              : "Mic"}
           </button>
           <div className="flex-1 rounded-full border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-[11px] text-zinc-100">
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Type your question…"
+              placeholder={
+                language === "fr"
+                  ? "Écrivez votre question…"
+                  : "Type your question…"
+              }
               className="w-full bg-transparent text-[11px] text-zinc-100 outline-none placeholder:text-zinc-500"
             />
           </div>
@@ -183,7 +285,7 @@ export default function GuidePage() {
             disabled={loading || !input.trim()}
             className="flex h-9 items-center justify-center rounded-full bg-emerald-500 px-3 text-[11px] font-semibold text-zinc-950 disabled:opacity-60"
           >
-            Send
+            {language === "fr" ? "Envoyer" : "Send"}
           </button>
           <button
             type="button"
@@ -212,13 +314,17 @@ export default function GuidePage() {
                 audio.play().catch((err) => {
                   console.error("Audio play error", err);
                   setError(
-                    "We generated audio but your browser could not play it. Please try again."
+                    language === "fr"
+                      ? "Le son a été généré mais votre navigateur n'a pas pu le lire. Veuillez réessayer."
+                      : "We generated audio but your browser could not play it. Please try again."
                   );
                 });
               } catch (e) {
                 console.error(e);
                 setError(
-                  "We could not generate audio right now. Please try again in a moment."
+                  language === "fr"
+                    ? "Impossible de générer l'audio pour le moment. Veuillez réessayer dans un instant."
+                    : "We could not generate audio right now. Please try again in a moment."
                 );
               } finally {
                 setVoiceLoading(false);
@@ -226,7 +332,7 @@ export default function GuidePage() {
             }}
             className="flex h-9 w-9 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900 text-[11px] text-zinc-200 disabled:opacity-60"
           >
-            {voiceLoading ? "..." : "Play"}
+            {voiceLoading ? "..." : language === "fr" ? "Lire" : "Play"}
           </button>
         </form>
       </section>

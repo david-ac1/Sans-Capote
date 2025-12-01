@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useSettings } from "../settings-provider";
+import { strings, t } from "../../i18n/strings";
 
 interface CrisisResponse {
   answer: string;
@@ -63,21 +64,22 @@ export default function CrisisPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-4 bg-zinc-950 px-4 py-6 text-zinc-50">
       <header className="space-y-1">
-        <h1 className="text-xl font-semibold">I was just exposed</h1>
+        <h1 className="text-xl font-semibold">
+          {t(strings.crisis.title, language)}
+        </h1>
         <p className="text-xs text-zinc-300">
-          A rapid, step-by-step guide for what to do after a possible HIV
-          exposure.
+          {t(strings.crisis.subtitle, language)}
         </p>
       </header>
 
       <section className="space-y-3 rounded-xl border border-red-900 bg-red-950 px-3 py-3 text-xs text-red-100">
         <p className="text-[11px] font-semibold uppercase tracking-wide text-red-200">
-          Step 1: Tell us what happened
+          {t(strings.crisis.step1, language)}
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="space-y-1">
-            <p className="text-[11px]">Time since exposure</p>
+            <p className="text-[11px]">{t(strings.crisis.timeSince, language)}</p>
             <select
               value={timeSince}
               onChange={(e) => setTimeSince(e.target.value)}
@@ -91,7 +93,9 @@ export default function CrisisPage() {
           </div>
 
           <div className="space-y-1">
-            <p className="text-[11px]">Type of exposure</p>
+            <p className="text-[11px]">
+              {t(strings.crisis.exposureType, language)}
+            </p>
             <select
               value={exposureType}
               onChange={(e) => setExposureType(e.target.value)}
@@ -107,7 +111,9 @@ export default function CrisisPage() {
 
           <div className="flex gap-3">
             <div className="flex-1 space-y-1">
-              <p className="text-[11px]">Condom used?</p>
+              <p className="text-[11px]">
+                {t(strings.crisis.condomUsed, language)}
+              </p>
               <select
                 value={condomUsed}
                 onChange={(e) => setCondomUsed(e.target.value)}
@@ -119,7 +125,7 @@ export default function CrisisPage() {
               </select>
             </div>
             <div className="flex-1 space-y-1">
-              <p className="text-[11px">On PrEP?</p>
+              <p className="text-[11px]">{t(strings.crisis.onPrep, language)}</p>
               <select
                 value={onPrep}
                 onChange={(e) => setOnPrep(e.target.value)}
@@ -137,7 +143,9 @@ export default function CrisisPage() {
             disabled={loading}
             className="mt-1 w-full rounded-full bg-red-400 px-4 py-2 text-[11px] font-semibold text-red-950 disabled:opacity-60"
           >
-            {loading ? "Checking timing…" : "Get urgent guidance"}
+            {loading
+              ? t(strings.crisis.submitting, language)
+              : t(strings.crisis.submit, language)}
           </button>
         </form>
       </section>
@@ -151,7 +159,7 @@ export default function CrisisPage() {
       {result && (
         <section className="space-y-2 rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-3 text-xs text-zinc-100">
           <p className="text-[11px] font-semibold text-red-300">
-            Step 2: What this means
+            {t(strings.crisis.step2, language)}
           </p>
           <p>{result.answer}</p>
           <p className="mt-2 text-[11px] text-zinc-400">{result.safetyNotice}</p>

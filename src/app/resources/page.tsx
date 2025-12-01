@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { resources } from "../../data/resources";
 import { useSettings } from "../settings-provider";
+import { strings, t } from "../../i18n/strings";
 
 export default function ResourcesPage() {
   const { language } = useSettings();
@@ -47,10 +48,11 @@ export default function ResourcesPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-4 bg-zinc-950 px-4 py-6 text-zinc-50">
       <header className="space-y-1">
-        <h1 className="text-xl font-semibold">Education Hub</h1>
+        <h1 className="text-xl font-semibold">
+          {t(strings.resources.title, language)}
+        </h1>
         <p className="text-xs text-zinc-300">
-          Short, simple explanations about HIV, STIs, LGBTQ+ health, consent,
-          and mental health.
+          {t(strings.resources.subtitle, language)}
         </p>
       </header>
 
@@ -84,12 +86,17 @@ export default function ResourcesPage() {
                       {item.title}
                     </h2>
                     <p className="mt-1 text-[11px] text-zinc-300">
-                      {item.summary}
+                      {language === "fr" ? item.summaryFr : item.summaryEn}
                     </p>
                   </div>
                   <button
                     type="button"
-                    onClick={() => handleListen(item.id, item.summary)}
+                    onClick={() =>
+                      handleListen(
+                        item.id,
+                        language === "fr" ? item.summaryFr : item.summaryEn
+                      )
+                    }
                     disabled={playingId === item.id}
                     className="ml-1 flex h-7 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900 px-2 text-[10px] text-zinc-200 disabled:opacity-60"
                   >

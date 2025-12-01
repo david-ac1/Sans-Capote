@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useSettings } from "../settings-provider";
+import { strings, t } from "../../i18n/strings";
 
 export default function SettingsPage() {
   const { language, setLanguage, countryCode, setCountryCode } = useSettings();
@@ -10,16 +11,19 @@ export default function SettingsPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-4 bg-zinc-950 px-4 py-6 text-zinc-50">
       <header className="space-y-1">
-        <h1 className="text-xl font-semibold">Settings &amp; Privacy</h1>
+        <h1 className="text-xl font-semibold">
+          {t(strings.app.settingsTitle, language)}
+        </h1>
         <p className="text-xs text-zinc-300">
-          Choose your language, country, and discreet mode. No login or account
-          is required.
+          {t(strings.settings.intro, language)}
         </p>
       </header>
 
       <section className="mt-2 space-y-3 rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-3 text-xs text-zinc-100">
         <div className="space-y-1">
-          <p className="text-[11px] font-semibold text-zinc-300">Language</p>
+          <p className="text-[11px] font-semibold text-zinc-300">
+            {t(strings.settings.languageLabel, language)}
+          </p>
           <select
             value={language}
             onChange={(e) =>
@@ -33,7 +37,9 @@ export default function SettingsPage() {
         </div>
 
         <div className="space-y-1">
-          <p className="text-[11px] font-semibold text-zinc-300">Country</p>
+          <p className="text-[11px] font-semibold text-zinc-300">
+            {t(strings.settings.countryLabel, language)}
+          </p>
           <select
             value={countryCode}
             onChange={(e) =>
@@ -60,10 +66,11 @@ export default function SettingsPage() {
 
         <div className="mt-2 flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2">
           <div className="space-y-0.5 text-[11px]">
-            <p className="font-semibold text-zinc-100">Discreet mode</p>
+            <p className="font-semibold text-zinc-100">
+              {t(strings.settings.discreetLabel, language)}
+            </p>
             <p className="text-zinc-400">
-              Use a neutral app name and hide explicit sexual health wording
-              where possible.
+              {t(strings.settings.discreetHelp, language)}
             </p>
           </div>
           <button
