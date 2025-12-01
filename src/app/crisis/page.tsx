@@ -40,6 +40,12 @@ export default function CrisisPage() {
           language,
           countryCode,
           mode: "crisis",
+          crisisContext: {
+            timeSince,
+            exposureType,
+            condomUsed,
+            onPrep,
+          },
         }),
       });
 

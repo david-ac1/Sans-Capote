@@ -9,11 +9,19 @@ interface ChatMessage {
   content: string;
 }
 
+interface CrisisContext {
+  timeSince?: "<24" | "24-48" | "48-72" | ">72";
+  exposureType?: "vaginal" | "anal" | "oral" | "needle" | "blood";
+  condomUsed?: "no" | "broke" | "yes";
+  onPrep?: "no" | "sometimes" | "yes";
+}
+
 interface ConversationRequestBody {
   messages: ChatMessage[];
   language?: "en" | "fr";
   countryCode?: string; // e.g. "NG", "KE", "UG", "ZA", "RW", "GH"
   mode?: "general" | "crisis" | "navigator" | "resources";
+  crisisContext?: CrisisContext;
 }
 
 interface ConversationAnswer {
@@ -33,6 +41,7 @@ function buildMockAnswer({
   language = "en",
   countryCode,
   mode = "general",
+  crisisContext,
 }: ConversationRequestBody): ConversationAnswer {
   const lastUserMessage = [...messages].reverse().find((m) => m.role === "user");
 
@@ -43,6 +52,124 @@ function buildMockAnswer({
 
   const isFrench = language === "fr";
   const safetyNotice = isFrench ? baseSafetyNoticeFr : baseSafetyNoticeEn;
+
+  // Specialised crisis logic using structured fields from the Crisis page
+  if (mode === "crisis" && crisisContext) {
+    const { timeSince, exposureType, condomUsed, onPrep } = crisisContext;
+
+    const pepWindowEn = (() => {
+      if (!timeSince) return "";
+      if (timeSince === "<24") {
+        return "You are still within the ideal PEP window. Go as soon as you can to a clinic or hospital that offers PEP — today if possible.";
+      }
+      if (timeSince === "24-48") {
+        return "You are still within the usual 72-hour PEP window. It is important to go as soon as possible — do not wait for symptoms.";
+      }
+      if (timeSince === "48-72") {
+        return "You are near the end of the usual 72-hour PEP window. Go urgently to a clinic or hospital that offers PEP and explain exactly when the exposure happened.";
+      }
+      return "You are likely outside the usual 72-hour PEP window. PEP may no longer be recommended, but you should still speak to a clinician about testing and follow-up.";
+    })();
+
+    const pepWindowFr = (() => {
+      if (!timeSince) return "";
+      if (timeSince === "<24") {
+        return "Vous êtes encore dans la période idéale pour la PEP. Allez dès que possible dans une clinique ou un hôpital qui propose la PEP — aujourd'hui si possible.";
+      }
+      if (timeSince === "24-48") {
+        return "Vous êtes encore dans la fenêtre habituelle de 72 heures pour la PEP. Il est important d'y aller le plus vite possible — n'attendez pas l'apparition de symptômes.";
+      }
+      if (timeSince === "48-72") {
+        return "Vous êtes proche de la fin de la fenêtre habituelle de 72 heures pour la PEP. Rendez-vous en urgence dans une clinique ou un hôpital qui propose la PEP et expliquez exactement quand l'exposition a eu lieu.";
+      }
+      return "Vous êtes probablement en dehors de la fenêtre habituelle de 72 heures pour la PEP. La PEP peut ne plus être recommandée, mais vous devriez quand même parler à un soignant du dépistage et du suivi.";
+    })();
+
+    const riskLineEn = (() => {
+      if (!exposureType) return "";
+      const highRisk = exposureType === "vaginal" || exposureType === "anal";
+      const protectionUsed = condomUsed === "yes" || onPrep === "yes";
+
+      if (highRisk && !protectionUsed) {
+        return "Vaginal or anal sex without reliable protection (no condom or broken condom, and no regular PrEP) can carry a meaningful risk for HIV. This is why acting quickly for PEP and follow-up testing is important.";
+      }
+      if (highRisk && protectionUsed) {
+        return "Because this was vaginal or anal sex but you used some protection (a condom that mostly stayed on or regular PrEP), the risk is lower, but it is still reasonable to seek medical advice and testing.";
+      }
+      if (exposureType === "oral") {
+        return "Oral sex generally carries a much lower risk for HIV than vaginal or anal sex, especially if there were no visible sores or bleeding. Even so, testing and a conversation with a clinician can help you feel more secure.";
+      }
+      if (exposureType === "needle" || exposureType === "blood") {
+        return "Sharing needles or direct contact with blood can carry a higher risk for HIV. You should seek care as soon as possible for PEP assessment and follow-up testing.";
+      }
+      return "";
+    })();
+
+    const riskLineFr = (() => {
+      if (!exposureType) return "";
+      const highRisk = exposureType === "vaginal" || exposureType === "anal";
+      const protectionUsed = condomUsed === "yes" || onPrep === "yes";
+
+      if (highRisk && !protectionUsed) {
+        return "Un rapport vaginal ou anal sans protection fiable (pas de préservatif ou préservatif cassé, et sans PrEP régulière) peut comporter un risque important pour le VIH. C'est pour cela qu'il est important d'agir vite pour la PEP et le dépistage.";
+      }
+      if (highRisk && protectionUsed) {
+        return "Comme il s'agissait d'un rapport vaginal ou anal mais avec une certaine protection (préservatif qui a globalement tenu ou PrEP prise régulièrement), le risque est plus faible, mais il reste pertinent de consulter et de faire un test.";
+      }
+      if (exposureType === "oral") {
+        return "Le sexe oral comporte en général un risque beaucoup plus faible pour le VIH que les rapports vaginaux ou anaux, surtout s'il n'y avait pas de plaies visibles ou de saignements. Malgré tout, un dépistage et un échange avec un soignant peuvent vous rassurer.";
+      }
+      if (exposureType === "needle" || exposureType === "blood") {
+        return "Le partage de seringues ou le contact direct avec du sang peut comporter un risque plus élevé pour le VIH. Vous devriez consulter dès que possible pour une évaluation PEP et un suivi de dépistage.";
+      }
+      return "";
+    })();
+
+    const testingPlanEn =
+      "Even if PEP is not started or not available, HIV testing is still important. Many guidelines suggest an initial test soon after the exposure, a repeat test around 6 weeks, and another test at about 3 months for a final confirmation.";
+    const testingPlanFr =
+      "Même si la PEP n'est pas commencée ou n'est pas disponible, le dépistage du VIH reste important. De nombreuses recommandations proposent un premier test peu après l'exposition, un autre vers 6 semaines, puis un dernier vers 3 mois pour confirmer la situation.";
+
+    const countryLineEn = countryCode
+      ? `If you can, go to a public clinic, hospital, or HIV service in ${countryCode}. If one place refuses to help you or makes you feel judged, you have the right to seek another clinic or an NGO that offers HIV services.`
+      : "If you can, go to a public clinic, hospital, or HIV service near you. If one place refuses to help you or makes you feel judged, you have the right to look for another clinic or an NGO that offers HIV services.";
+
+    const countryLineFr = countryCode
+      ? `Si possible, allez dans une clinique publique, un hôpital ou un service VIH en ${countryCode}. Si un lieu refuse de vous aider ou vous juge, vous avez le droit de chercher une autre clinique ou une ONG qui propose des services VIH.`
+      : "Si possible, allez dans une clinique publique, un hôpital ou un service VIH près de chez vous. Si un endroit refuse de vous aider ou vous juge, vous avez le droit de chercher une autre clinique ou une ONG qui propose des services VIH.";
+
+    const answer = isFrench
+      ? [pepWindowFr, riskLineFr, testingPlanFr, countryLineFr]
+          .filter(Boolean)
+          .join(" \n\n")
+      : [pepWindowEn, riskLineEn, testingPlanEn, countryLineEn]
+          .filter(Boolean)
+          .join(" \n\n");
+
+    const suggestions = isFrench
+      ? [
+          "Explique-moi plus en détail comment fonctionne la PEP.",
+          "Aide-moi à préparer ce que je peux dire au personnel de la clinique.",
+          "Quels autres risques dois-je surveiller après cette exposition ?",
+        ]
+      : [
+          "Explain in simple words how PEP works and the usual side effects.",
+          "Help me practice what I can say to the clinic staff when I arrive.",
+          "What other health risks should I watch for after this exposure?",
+        ];
+
+    return {
+      answer,
+      suggestions,
+      safetyNotice,
+      meta: {
+        language,
+        countryCode,
+        mode,
+        offlineFallbackUsed: false,
+      },
+    };
+  }
 
   const countryText = countryCode
     ? isFrench
