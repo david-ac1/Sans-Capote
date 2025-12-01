@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useSettings } from "../settings-provider";
 
 type Role = "user" | "assistant";
 
@@ -16,6 +17,7 @@ interface ConversationResponse {
 }
 
 export default function GuidePage() {
+  const { language, countryCode } = useSettings();
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: "assistant",
@@ -57,7 +59,8 @@ export default function GuidePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: nextMessages,
-          language: "en",
+          language,
+          countryCode,
           mode: "general",
         }),
       });
@@ -195,7 +198,7 @@ export default function GuidePage() {
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
                     text: latestAssistantMessage,
-                    language: "en",
+                    language,
                   }),
                 });
 
