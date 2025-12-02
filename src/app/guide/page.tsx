@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSettings } from "../settings-provider";
 import { strings, t } from "../../i18n/strings";
 
@@ -9,25 +9,21 @@ type Role = "user" | "assistant";
 interface ChatMessage {
   role: Role;
   content: string;
+  timestamp: number;
 }
 
 interface ConversationResponse {
   answer: string;
   suggestions: string[];
-  safetyNotice: string;
 }
+
+type SpeechRecognition = any;
 
 export default function GuidePage() {
   const { language, countryCode } = useSettings();
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      role: "assistant",
-      content:
-        language === "fr"
-          ? t(strings.guide.intro, "fr")
-          : t(strings.guide.intro, "en"),
-    },
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [isInitialized, setIsInitialized] = useState(false);
+
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([
@@ -37,14 +33,48 @@ export default function GuidePage() {
   ]);
   const [error, setError] = useState<string | null>(null);
   const [voiceLoading, setVoiceLoading] = useState(false);
-  const [isListening, setIsListening] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
   const lastSpokenAssistantRef = useRef<string | null>(null);
 
-  const latestAssistantMessage = useMemo(() => {
-    const reversed = [...messages].reverse();
-    return reversed.find((m) => m.role === "assistant")?.content ?? "";
+  // Initialize messages on client side only to avoid hydration mismatch
+  useEffect(() => {
+    if (!isInitialized) {
+      setMessages([
+        {
+          role: "assistant",
+          content: language === "fr"
+            ? "Bonjour ! Je suis votre assistant éducatif sur le VIH. Comment puis-je vous aider aujourd'hui ?"
+            : "Hello! I'm your HIV education assistant. How can I help you today?",
+          timestamp: Date.now(),
+        },
+      ]);
+      setIsInitialized(true);
+    }
+  }, [isInitialized, language]);
+
+  // Get latest assistant message
+  const latestAssistantMessage = messages
+    .slice()
+    .reverse()
+    .find((m) => m.role === "assistant")?.content || null;
+
+  // Auto-resize textarea as user types
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
+    }
+  }, [input]);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   async function playAssistantMessage(text: string) {
@@ -123,7 +153,6 @@ export default function GuidePage() {
     if (lastSpokenAssistantRef.current === latestAssistantMessage) return;
     lastSpokenAssistantRef.current = latestAssistantMessage;
     void playAssistantMessage(latestAssistantMessage);
-    // we intentionally depend on latestAssistantMessage, language and messages
   }, [latestAssistantMessage, language, messages]);
 
   async function sendMessage(text: string) {
@@ -132,7 +161,7 @@ export default function GuidePage() {
 
     const nextMessages: ChatMessage[] = [
       ...messages,
-      { role: "user", content: trimmed },
+      { role: "user", content: trimmed, timestamp: Date.now() },
     ];
     setMessages(nextMessages);
     setInput("");
@@ -159,7 +188,7 @@ export default function GuidePage() {
 
       setMessages((current) => [
         ...current,
-        { role: "assistant", content: data.answer },
+        { role: "assistant", content: data.answer, timestamp: Date.now() },
       ]);
       setSuggestions(data.suggestions);
     } catch (e) {
@@ -348,6 +377,7 @@ export default function GuidePage() {
               </div>
             </div>
           )}
+          <div ref={messagesEndRef} />
         </div>
 
         <form
