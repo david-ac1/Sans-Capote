@@ -18,14 +18,24 @@ export async function POST(request: NextRequest) {
 
     const MAX_TTS_LENGTH = 800; // keep TTS requests short and responsive
     const trimmedText = body.text.trim();
+
+    // If the text is very long, truncate it to keep TTS requests
+    // reliable and avoid failing the whole request. We prioritise
+    // returning playable audio for the start of the message rather
+    // than returning an error. Log a warning so this can be tracked.
+    let textToSpeak = trimmedText;
     if (trimmedText.length > MAX_TTS_LENGTH) {
-      return NextResponse.json(
-        {
-          error:
-            "Text is too long to read out in a single request. Please shorten your question or answer.",
-        },
-        { status: 400 }
+      // Try to cut at the last sentence/space boundary under the limit
+      const snippet = trimmedText.slice(0, MAX_TTS_LENGTH);
+      const lastBoundary = Math.max(
+        snippet.lastIndexOf('.'),
+        snippet.lastIndexOf('!'),
+        snippet.lastIndexOf('?'),
+        snippet.lastIndexOf(' ')
       );
+      const cutAt = lastBoundary > Math.floor(MAX_TTS_LENGTH * 0.5) ? lastBoundary : Math.floor(MAX_TTS_LENGTH - 1);
+      textToSpeak = `${trimmedText.slice(0, cutAt).trim()}…`;
+      console.warn('/api/voice-out: input text truncated for TTS (original length:', trimmedText.length, ')');
     }
 
     const apiKey = process.env.ELEVENLABS_API_KEY;
@@ -63,7 +73,7 @@ export async function POST(request: NextRequest) {
         Accept: "audio/mpeg",
       },
       body: JSON.stringify({
-        text: trimmedText,
+        text: textToSpeak,
         model_id: "eleven_multilingual_v2",
         voice_settings: {
           stability: 0.4,
