@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { countryGuides } from "../../../data/countryGuides";
 import { resources } from "../../../data/resources";
 import { servicesDirectory } from "../../../data/servicesDirectory";
+import { logConversationMetric } from "../../../lib/metrics";
 
 // Simple types for the conversation API. We can later extend this when wiring Gemini.
 
@@ -37,6 +38,11 @@ interface ConversationAnswer {
     mode: string;
     offlineFallbackUsed: boolean;
   };
+  // fullAnswer contains the unmodified AI output; shortAnswer is a bite-sized
+  // summary for phone screens and faster TTS. Clients can show a "read full"
+  // option when fullAnswer is present and longer than shortAnswer.
+  fullAnswer?: string;
+  shortAnswer?: string;
 }
 
 async function tryGeminiAnswer(
@@ -118,18 +124,21 @@ async function tryGeminiAnswer(
       : rawUserContent;
 
   const systemPrompt = isFrench
-    ? `Tu es un guide numérique en santé sexuelle et prévention du VIH pour des personnes vivant en Afrique. Tu dois :
-- Utiliser un langage simple, sans jugement, adapté à des personnes sans formation médicale.
+    ? `Tu es Sans Capote, un assistant numérique en santé sexuelle et prévention du VIH pour des personnes vivant en Afrique. Tu dois :
+- Utiliser un langage simple, chaleureux, sans jugement, adapté à des personnes sans formation médicale.
+- Parler comme une vraie personne : naturel, conversationnel, avec empathie.
+- Garder les réponses courtes (max 400 mots) pour une lecture vocale fluide.
+- Utiliser des phrases courtes (< 15 mots) pour que l'audio soit facile à suivre.
 - Fournir des explications claires sur le VIH, la PrEP, la PEP, le dépistage, les IST et la santé sexuelle.
 - Ne pas poser de diagnostic et ne pas promettre de résultat de test.
-- Rappeler que les informations ne remplacent pas une consultation médicale et encourager la consultation d'un soignant local.
-- Respecter la confidentialité, éviter les termes stigmatisants et ne pas décrire de contenu graphique.
+- Rappeler que les informations ne remplacent pas une consultation médicale.
+- Respecter la confidentialité, éviter les termes stigmatisants.
 
 FORMAT DE RÉPONSE :
-- Réponds en AU PLUS 4 à 5 courtes sections, adaptées à un écran de téléphone.
-- Commence chaque section par un titre court en gras ou clair (par exemple : "1. PEP dans les 72 heures").
-- Utilise des phrases courtes (2–3 lignes maximum par section) et des puces simples quand c'est utile.
-- Va droit au but sur ce que la personne peut faire MAINTENANT, dans son pays.
+- Réponds en AU PLUS 4 à 5 courtes sections adaptées à un écran de téléphone.
+- Commence chaque section par un titre court en gras.
+- Ajoute des pauses naturelles (sauts de ligne) où le lecteur peut respirer.
+- Va droit au but sur ce que la personne peut faire MAINTENANT.
 
 Contexte pays (si disponible) :
 ${countryGuideSnippet || "(aucun contexte pays spécifique)"}
@@ -139,21 +148,24 @@ ${resourcesSnippet}
 
 ${crisisSnippet}
 
-Services locaux (à privilégier dans tes conseils quand c'est pertinent) :
+Services locaux (à privilégier) :
 ${localServicesSnippet || "(pas encore de services locaux listés)"}
 
 Réponds UNIQUEMENT en français.`
-    : `You are a digital sexual health and HIV prevention guide for people in African countries. You must:
+    : `You are Sans Capote, a warm and empathetic AI sexual health and HIV prevention guide for people in African countries. You must:
 - Use simple, non-judgmental language suitable for non-medical users.
-- Give clear explanations about HIV, PrEP, PEP, testing, STIs, consent, relationships, and mental health.
+- Speak naturally and conversationally, like a real person with genuine empathy.
+- Keep answers short and scannable (max 400 words) for natural voice delivery.
+- Use short sentences (< 15 words each) so audio is easy to follow.
+- Give clear explanations about HIV, PrEP, PEP, testing, STIs, consent, and mental health.
 - Not give a medical diagnosis and not promise any specific test result.
-- Remind users that this does not replace seeing a clinician, and encourage local care when needed.
+- Remind users that this does not replace seeing a clinician, and encourage local care.
 - Respect privacy, avoid stigmatizing language, and avoid any graphic descriptions.
 
 ANSWER FORMAT:
 - Reply in NO MORE THAN 4 to 5 short sections suitable for a phone screen.
-- Start each section with a short, clear heading (e.g. "1. PEP in the first 72 hours").
-- Use short sentences (2–3 lines per section) and simple bullet points where helpful.
+- Start each section with a short, clear heading.
+- Add natural pauses (line breaks) where the listener might want to reflect.
 - Focus on what the person can do NOW, in their country and context.
 
 Country context (if available):
@@ -164,10 +176,10 @@ ${resourcesSnippet}
 
 ${crisisSnippet}
 
-Local services (prefer mentioning these when relevant to care access):
+Local services (prefer mentioning these when relevant):
 ${localServicesSnippet || "(no specific local services listed yet)"}
 
-Reply ONLY in ${isFrench ? "French" : "English"}.`;
+Reply ONLY in English.`;
 
   const modelName = "gemini-2.5-flash";
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
@@ -212,6 +224,20 @@ Reply ONLY in ${isFrench ? "French" : "English"}.`;
       return null;
     }
 
+    // Create a short, bite-sized version for mobile screens and faster TTS
+    const makeShort = (src: string) => {
+      const MAX_CHARS = 600;
+      const MAX_SENTENCES = 4;
+      if (src.length <= MAX_CHARS) return src;
+      const sentences = src.match(/[^.!?]+[.!?]*[.!?]?/g) || [];
+      const candidate = sentences.slice(0, MAX_SENTENCES).join(' ').trim();
+      if (candidate.length >= 80) return candidate + (candidate.length < src.length ? '…' : '');
+      // Fallback to truncating characters
+      return src.slice(0, Math.min(MAX_CHARS, src.length)).trim() + '…';
+    };
+
+    const short = makeShort(text);
+
     const suggestions = isFrench
       ? [
           "Explique-moi une autre option de prévention adaptée à ma situation.",
@@ -231,7 +257,9 @@ Reply ONLY in ${isFrench ? "French" : "English"}.`;
     });
 
     return {
-      answer: text,
+      answer: short,
+      fullAnswer: text,
+      shortAnswer: short,
       suggestions,
       safetyNotice,
       meta: {
@@ -263,6 +291,16 @@ function buildMockAnswer({
 
   const isFrench = language === "fr";
   const safetyNotice = isFrench ? baseSafetyNoticeFr : baseSafetyNoticeEn;
+
+  const makeShort = (src: string) => {
+    const MAX_CHARS = 600;
+    const MAX_SENTENCES = 4;
+    if (src.length <= MAX_CHARS) return src;
+    const sentences = src.match(/[^.!?]+[.!?]*[.!?]?/g) || [];
+    const candidate = sentences.slice(0, MAX_SENTENCES).join(' ').trim();
+    if (candidate.length >= 80) return candidate + (candidate.length < src.length ? '…' : '');
+    return src.slice(0, Math.min(MAX_CHARS, src.length)).trim() + '…';
+  };
 
   // Specialised crisis logic using structured fields from the Crisis page
   if (mode === "crisis" && crisisContext) {
@@ -369,8 +407,11 @@ function buildMockAnswer({
           "What other health risks should I watch for after this exposure?",
         ];
 
+    const answerShort = makeShort(answer);
     return {
-      answer,
+      answer: answerShort,
+      fullAnswer: answer,
+      shortAnswer: answerShort,
       suggestions,
       safetyNotice,
       meta: {
@@ -458,8 +499,11 @@ function buildMockAnswer({
         "What are signs of an STI without showing pictures?",
       ];
 
+  const answerShort = makeShort(answer);
   return {
-    answer,
+    answer: answerShort,
+    fullAnswer: answer,
+    shortAnswer: answerShort,
     suggestions,
     safetyNotice,
     meta: {
@@ -472,16 +516,26 @@ function buildMockAnswer({
 }
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+  let body: ConversationRequestBody | null = null;
+
   try {
-    const body = (await request.json()) as ConversationRequestBody;
+    body = (await request.json()) as ConversationRequestBody;
 
     if (!body || !Array.isArray(body.messages) || body.messages.length === 0) {
-      return NextResponse.json(
-        { error: "Missing messages in request body." },
-        { status: 400 }
-      );
+      logConversationMetric({
+        timestamp: new Date().toISOString(),
+        type: 'conversation_error',
+        durationMs: Date.now() - startTime,
+        language: body?.language ?? 'unknown',
+        countryCode: body?.countryCode,
+        mode: body?.mode ?? 'unknown',
+        modelUsed: 'none',
+        error: 'Missing messages in request body',
+        errorType: 'validation',
+      });
+      return NextResponse.json({ error: "Missing messages in request body." }, { status: 400 });
     }
-
     // Basic safety: cap conversation length and individual message sizes
     const MAX_MESSAGES = 30;
     const MAX_MESSAGE_LENGTH = 4000;
@@ -512,15 +566,45 @@ export async function POST(request: NextRequest) {
     if (!allowedModes.includes(body.mode ?? "general")) {
       body.mode = "general";
     }
-    const geminiAnswer = await tryGeminiAnswer(body);
-    const response = geminiAnswer ?? buildMockAnswer(body);
+    const geminiAnswer = await Promise.resolve().then(() => tryGeminiAnswer(body!));
+    const response = geminiAnswer ?? buildMockAnswer(body!);
+    
+    logConversationMetric({
+      timestamp: new Date().toISOString(),
+      type: 'conversation_response',
+      durationMs: Date.now() - startTime,
+      language: body!.language ?? 'en',
+      countryCode: body!.countryCode,
+      mode: body!.mode ?? 'general',
+      requestLength: body!.messages.reduce((sum, m) => sum + m.content.length, 0),
+      responseLength: response.answer.length,
+      modelUsed: 'gemini-2.5-flash',
+    });
+    
     return NextResponse.json(response, { status: 200 });
   } catch (error) {
-    console.error("/api/conversation error", error);
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    const errorType = error instanceof Error ? error.constructor.name : 'unknown';
+    
+    console.error("/api/conversation error", errorMsg, error);
+    
+    logConversationMetric({
+      timestamp: new Date().toISOString(),
+      type: 'conversation_error',
+      durationMs: Date.now() - startTime,
+      language: body?.language ?? 'unknown',
+      countryCode: body?.countryCode,
+      mode: body?.mode ?? 'unknown',
+      modelUsed: 'gemini-2.5-flash',
+      error: errorMsg,
+      errorType,
+    });
+
     return NextResponse.json(
       {
         error:
           "Unable to process your question right now. Please try again in a moment.",
+        details: process.env.NODE_ENV === 'development' ? errorMsg : undefined,
       },
       { status: 500 }
     );

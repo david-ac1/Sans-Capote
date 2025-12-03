@@ -9,8 +9,10 @@ export type SupportedCountryCode = "NG" | "KE" | "UG" | "ZA" | "RW" | "GH";
 interface SettingsState {
   language: SupportedLanguage;
   countryCode: SupportedCountryCode;
+  playbackRate: number;
   setLanguage: (value: SupportedLanguage) => void;
   setCountryCode: (value: SupportedCountryCode) => void;
+  setPlaybackRate: (value: number) => void;
 }
 
 const SettingsContext = createContext<SettingsState | undefined>(undefined);
@@ -22,6 +24,7 @@ export function SettingsProvider({
 }) {
   const [language, setLanguage] = useState<SupportedLanguage>("en");
   const [countryCode, setCountryCode] = useState<SupportedCountryCode>("NG");
+  const [playbackRate, setPlaybackRate] = useState<number>(1.2);
 
   // Load initial settings from localStorage on first mount
   useEffect(() => {
@@ -29,6 +32,7 @@ export function SettingsProvider({
     try {
       const storedLanguage = window.localStorage.getItem("sc_language");
       const storedCountry = window.localStorage.getItem("sc_country_code");
+      const storedPlayback = window.localStorage.getItem("sc_playback_rate");
 
       if (storedLanguage === "en" || storedLanguage === "fr") {
         setLanguage(storedLanguage);
@@ -44,6 +48,13 @@ export function SettingsProvider({
       ) {
         setCountryCode(storedCountry);
       }
+
+      if (storedPlayback) {
+        const n = Number(storedPlayback);
+        if (!Number.isNaN(n) && n > 0 && n <= 3) {
+          setPlaybackRate(n);
+        }
+      }
     } catch {
       // ignore localStorage errors
     }
@@ -55,6 +66,7 @@ export function SettingsProvider({
     try {
       window.localStorage.setItem("sc_language", language);
       window.localStorage.setItem("sc_country_code", countryCode);
+      window.localStorage.setItem("sc_playback_rate", String(playbackRate));
     } catch {
       // ignore localStorage errors
     }
@@ -62,7 +74,14 @@ export function SettingsProvider({
 
   return (
     <SettingsContext.Provider
-      value={{ language, countryCode, setLanguage, setCountryCode }}
+      value={{
+        language,
+        countryCode,
+        playbackRate,
+        setLanguage,
+        setCountryCode,
+        setPlaybackRate,
+      }}
     >
       {children}
     </SettingsContext.Provider>

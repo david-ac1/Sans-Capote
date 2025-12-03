@@ -10,6 +10,7 @@ interface ChatMessage {
   role: Role;
   content: string;
   timestamp: number;
+  fullContent?: string;
 }
 
 interface ConversationResponse {
@@ -21,6 +22,7 @@ type SpeechRecognition = any;
 
 export default function GuidePage() {
   const { language, countryCode } = useSettings();
+  const { playbackRate } = useSettings();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -100,12 +102,25 @@ export default function GuidePage() {
       });
 
       if (!res.ok) {
-        throw new Error("Voice request failed");
+        const errorData = await res.json().catch(() => ({ error: "Unknown error" }));
+        throw new Error(
+          errorData.error || `Audio generation failed (status: ${res.status})`
+        );
       }
 
       const blob = await res.blob();
+      if (blob.size === 0) {
+        throw new Error("Received empty audio file from server");
+      }
+
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
+      // Apply user-controlled playback speed for faster reading
+      try {
+        audio.playbackRate = playbackRate ?? 1.2;
+      } catch (e) {
+        // ignore if browser doesn't allow setting playbackRate yet
+      }
       audioRef.current = audio;
       audio.onended = () => {
         setIsPlaying(false);
@@ -126,11 +141,12 @@ export default function GuidePage() {
           );
         });
     } catch (e) {
-      console.error(e);
+      console.error("Voice error:", e);
+      const errorMsg = e instanceof Error ? e.message : String(e);
       setError(
         language === "fr"
-          ? "Impossible de générer l'audio pour le moment. Veuillez réessayer dans un instant."
-          : "We could not generate audio right now. Please try again in a moment."
+          ? `Impossible de générer l'audio: ${errorMsg}. Vérifiez votre connexion et réessayez.`
+          : `Could not generate audio: ${errorMsg}. Please check your connection and try again.`
       );
     } finally {
       setVoiceLoading(false);
@@ -152,7 +168,10 @@ export default function GuidePage() {
     if (!hasUserMessage || !latestAssistantMessage) return;
     if (lastSpokenAssistantRef.current === latestAssistantMessage) return;
     lastSpokenAssistantRef.current = latestAssistantMessage;
-    void playAssistantMessage(latestAssistantMessage);
+    // Play a short preview quickly for faster feedback (first ~400 chars)
+    const PREVIEW_CHARS = 400;
+    const previewText = latestAssistantMessage.slice(0, PREVIEW_CHARS);
+    void playAssistantMessage(previewText);
   }, [latestAssistantMessage, language, messages]);
 
   async function sendMessage(text: string) {
@@ -184,11 +203,19 @@ export default function GuidePage() {
         throw new Error("Request failed");
       }
 
-      const data = (await res.json()) as ConversationResponse;
+      const data = (await res.json()) as ConversationResponse & { fullAnswer?: string; shortAnswer?: string };
+
+      const assistantContent = data.shortAnswer || data.answer;
+      const fullContent = data.fullAnswer || data.answer;
 
       setMessages((current) => [
         ...current,
-        { role: "assistant", content: data.answer, timestamp: Date.now() },
+        {
+          role: "assistant",
+          content: assistantContent,
+          fullContent,
+          timestamp: Date.now(),
+        },
       ]);
       setSuggestions(data.suggestions);
     } catch (e) {
@@ -347,6 +374,25 @@ export default function GuidePage() {
                       </p>
                     );
                   })}
+                  {m.role === 'assistant' && m.fullContent && m.fullContent.length > m.content.length && (
+                    <div className="mt-2 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          // Replace this message with the full content and play it
+                          setMessages((cur) =>
+                            cur.map((msg, i) =>
+                              i === idx ? { ...msg, content: msg.fullContent ?? msg.content } : msg
+                            )
+                          );
+                          void playAssistantMessage(m.fullContent ?? m.content);
+                        }}
+                        className="text-[11px] text-emerald-300"
+                      >
+                        {language === 'fr' ? 'Lire la suite' : 'Read full'}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             );

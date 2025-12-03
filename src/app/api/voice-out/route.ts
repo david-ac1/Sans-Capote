@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logVoiceMetric } from "../../../lib/metrics";
 
 interface VoiceOutRequestBody {
   text: string;
@@ -6,6 +7,7 @@ interface VoiceOutRequestBody {
 }
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
   try {
     const body = (await request.json()) as VoiceOutRequestBody;
 
@@ -85,13 +87,34 @@ export async function POST(request: NextRequest) {
     if (!elevenResponse.ok) {
       const errorText = await elevenResponse.text();
       console.error("ElevenLabs TTS error", elevenResponse.status, errorText);
+      
+      logVoiceMetric({
+        timestamp: new Date().toISOString(),
+        type: 'tts_error',
+        durationMs: Date.now() - startTime,
+        language: body.language ?? 'en',
+        textLength: textToSpeak.length,
+        error: `ElevenLabs returned ${elevenResponse.status}`,
+        voiceId,
+      });
+
       return NextResponse.json(
-        { error: "Failed to generate audio from ElevenLabs." },
+        { error: "Failed to generate audio from ElevenLabs.", status: elevenResponse.status },
         { status: 502 },
       );
     }
 
     const audioBuffer = Buffer.from(await elevenResponse.arrayBuffer());
+    
+    logVoiceMetric({
+      timestamp: new Date().toISOString(),
+      type: 'tts_success',
+      durationMs: Date.now() - startTime,
+      language: body.language ?? 'en',
+      textLength: textToSpeak.length,
+      audioSizeBytes: audioBuffer.length,
+      voiceId,
+    });
 
     return new NextResponse(audioBuffer, {
       status: 200,
@@ -101,11 +124,24 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("/api/voice-out error", error);
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    
+    console.error("/api/voice-out error", errorMsg, error);
+    
+    logVoiceMetric({
+      timestamp: new Date().toISOString(),
+      type: 'tts_error',
+      durationMs: Date.now() - startTime,
+      language: 'unknown',
+      textLength: 0,
+      error: errorMsg,
+    });
+
     return NextResponse.json(
       {
         error:
           "Unable to generate audio right now. Please try again in a moment.",
+        details: process.env.NODE_ENV === 'development' ? errorMsg : undefined,
       },
       { status: 500 }
     );
