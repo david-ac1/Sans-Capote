@@ -27,6 +27,11 @@ export interface ServiceEntry {
   phone?: string; // contact phone, if available
   lat?: number; // optional latitude for maps
   lng?: number; // optional longitude for maps
+  lgbtqiaFriendly?: number; // 0–5 rating (0 = not known, 5 = very friendly)
+  pepAvailability?: "high" | "medium" | "low" | "unknown"; // assessed PEP likelihood
+  prepAvailability?: "high" | "medium" | "low" | "unknown"; // assessed PrEP likelihood
+  hours?: string; // opening hours, e.g., "Mon-Fri 8am-5pm"
+  website?: string; // facility website or contact page
 }
 
 export const servicesDirectory: ServiceEntry[] = [
@@ -44,6 +49,14 @@ export const servicesDirectory: ServiceEntry[] = [
       "Confidential testing, prevention and treatment services run by AHF Nigeria. Known for outreach and PrEP programming; offers counselling and condom distribution. Ask at reception for 'HIV counselling and post-exposure care'. PEP/PrEP historically provided through AHF programmes. PEP_CERTAINTY: Medium; PrEP_CERTAINTY: High.",
     notesFr:
       "Dépistage confidentiel, prévention et traitement via AHF Nigeria. Service de conseil, distribution de préservatifs et programmes PrEP. Demandez « conseils VIH et soins après exposition ». PEP_CERTAINTY: Moyen; PrEP_CERTAINTY: Élevé.",
+    lat: 6.5244,
+    lng: 3.3792,
+    lgbtqiaFriendly: 4,
+    pepAvailability: "medium",
+    prepAvailability: "high",
+    hours: "Mon-Fri 8am-5pm, Sat 9am-1pm",
+    phone: "+234 1 294 4000",
+    website: "https://ahf.org.ng",
   },
   {
     id: "ng_ihvn_national",

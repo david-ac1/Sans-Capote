@@ -105,6 +105,16 @@ export const strings = {
       en: "Use a neutral app name and hide explicit sexual health wording where possible.",
       fr: "Utiliser un nom d'application neutre et cacher les mots trop explicites quand c'est possible.",
     },
+    playbackRateLabel: { en: "Playback speed", fr: "Vitesse de lecture" },
+    playbackRateHelp: {
+      en: "Adjust how quickly assistant replies are read aloud (1.0x–2.0x).",
+      fr: "Ajustez la vitesse de lecture des réponses (1.0x–2.0x).",
+    },
+    voicePrefLabel: { en: "Preferred input", fr: "Méthode préférée" },
+    voicePrefHelp: {
+      en: "Choose whether you prefer voice or text input as the default.",
+      fr: "Choisissez si vous préférez la saisie vocale ou texte par défaut.",
+    },
   },
   guide: {
     title: { en: "AI Sexual Health Guide", fr: "Guide IA de santé sexuelle" },
@@ -149,6 +159,53 @@ export const strings = {
     subtitle: {
       en: "Learn about PrEP, PEP, condoms, and HIV testing with guidance tailored to your country.",
       fr: "Comprenez la PrEP, la PEP, les préservatifs et le dépistage avec des conseils adaptés à votre pays.",
+    },
+    disclaimer: {
+      en: "This information is educational and does not replace medical advice. In an emergency, go to the nearest clinic or hospital.",
+      fr: "Ces informations sont à titre éducatif et ne remplacent pas les conseils médicaux. En cas d'urgence, allez à la clinique ou à l'hôpital le plus proche.",
+    },
+    exposureForm: {
+      en: "Check PEP Eligibility",
+      fr: "Vérifier l'éligibilité à la PEP",
+    },
+    timeSinceExposure: { en: "Time since exposure (hours)", fr: "Temps depuis l'exposition (heures)" },
+    exposureTypeLabel: { en: "Type of exposure", fr: "Type d'exposition" },
+    condomUsedLabel: { en: "Was a condom used?", fr: "Un préservatif a-t-il été utilisé ?" },
+    submit: { en: "Check PEP Timing", fr: "Vérifier la fenêtre PEP" },
+    pepUrgent: {
+      en: "🚨 URGENT: PEP must be started within 72 hours. Go to a clinic NOW.",
+      fr: "🚨 URGENT : La PEP doit être commencée dans les 72 heures. Allez à la clinique MAINTENANT.",
+    },
+    pepWindow: {
+      en: "⏰ PEP WINDOW OPEN: You are still within the 72-hour window. Go to a clinic as soon as possible.",
+      fr: "⏰ FENÊTRE PEP OUVERTE : Vous êtes dans la fenêtre de 72 heures. Allez à une clinique dès que possible.",
+    },
+    pepClosed: {
+      en: "❌ PEP window has closed (>72 hours). Focus on getting tested and learning about PrEP for future protection.",
+      fr: "❌ La fenêtre PEP a fermé (>72 heures). Concentrez-vous sur le dépistage et la PrEP pour l'avenir.",
+    },
+    nearestClinics: { en: "Nearest clinics & services", fr: "Cliniques et services les plus proches" },
+    mapViewToggle: { en: "Show on map", fr: "Afficher sur la carte" },
+    listViewToggle: { en: "List view", fr: "Vue liste" },
+    lgbtqiaRating: { en: "LGBTQIA+ friendly", fr: "Accueil LGBTQIA+" },
+    pepAvailability: { en: "PEP availability", fr: "Disponibilité PEP" },
+    prepAvailability: { en: "PrEP availability", fr: "Disponibilité PrEP" },
+    call: { en: "Call", fr: "Appeler" },
+    directions: { en: "Directions", fr: "Itinéraire" },
+    shareClinic: { en: "Share", fr: "Partager" },
+    geoConsentTitle: {
+      en: "Share your location?",
+      fr: "Partager votre localisation ?",
+    },
+    geoConsentBody: {
+      en: "We can find clinics nearest to you. Your location is used locally only and is never stored.",
+      fr: "Nous pouvons trouver les cliniques les plus proches de vous. Votre localisation est utilisée localement uniquement.",
+    },
+    geoAllow: { en: "Allow location", fr: "Autoriser la localisation" },
+    geoDeny: { en: "Use manual search", fr: "Recherche manuelle" },
+    offlineNotice: {
+      en: "Offline: Showing cached clinic data.",
+      fr: "Hors ligne : Affichage des données de clinique en cache.",
     },
   },
   resources: {

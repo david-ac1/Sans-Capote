@@ -21,8 +21,7 @@ interface ConversationResponse {
 type SpeechRecognition = any;
 
 export default function GuidePage() {
-  const { language, countryCode } = useSettings();
-  const { playbackRate } = useSettings();
+  const { language, countryCode, playbackRate, voicePreference } = useSettings();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -73,6 +72,15 @@ export default function GuidePage() {
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
     }
   }, [input]);
+
+  // Focus behavior depending on preferred input method
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (voicePreference === 'text' && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [voicePreference]);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -433,24 +441,40 @@ export default function GuidePage() {
           <button
             type="button"
             onClick={handleMicClick}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900 text-[11px] text-zinc-200"
+            className={`relative flex h-9 w-9 items-center justify-center rounded-full border px-0.5 text-[11px] text-zinc-200 transition-all ${
+              voicePreference === 'voice'
+                ? isListening
+                  ? 'border-emerald-400 bg-emerald-600/10'
+                  : 'border-emerald-500 bg-emerald-600/5'
+                : 'border-zinc-700 bg-zinc-900'
+            }`}
           >
-            {isListening
-              ? language === "fr"
-                ? "Rec"
-                : "Rec"
-              : "Mic"}
+            {/* Listening/wavy rings */}
+            {isListening && (
+              <>
+                <span className="absolute -inset-1 rounded-full border-2 border-emerald-400/30 animate-ping" />
+                <span className="absolute -inset-2 rounded-full border border-emerald-400/20" />
+              </>
+            )}
+            <span className="relative z-10">
+              {isListening ? (language === "fr" ? "Rec" : "Rec") : "Mic"}
+            </span>
           </button>
           <div className="flex-1 rounded-full border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-[11px] text-zinc-100">
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder={
-                language === "fr"
+                voicePreference === 'voice'
+                  ? language === "fr"
+                    ? "Appuyez sur le micro et parlez…"
+                    : "Tap the mic and speak…"
+                  : language === "fr"
                   ? "Écrivez votre question…"
                   : "Type your question…"
               }
-              className="w-full bg-transparent text-[11px] text-zinc-100 outline-none placeholder:text-zinc-500"
+                ref={inputRef}
+                className="w-full bg-transparent text-[11px] text-zinc-100 outline-none placeholder:text-zinc-500"
             />
           </div>
           <button

@@ -6,13 +6,18 @@ export type SupportedLanguage = "en" | "fr";
 
 export type SupportedCountryCode = "NG" | "KE" | "UG" | "ZA" | "RW" | "GH";
 
+export type VoicePreference = "voice" | "text";
 interface SettingsState {
   language: SupportedLanguage;
   countryCode: SupportedCountryCode;
   playbackRate: number;
+  voicePreference: VoicePreference;
+  discreetMode: boolean;
   setLanguage: (value: SupportedLanguage) => void;
   setCountryCode: (value: SupportedCountryCode) => void;
   setPlaybackRate: (value: number) => void;
+  setVoicePreference: (value: VoicePreference) => void;
+  setDiscreetMode: (v: boolean) => void;
 }
 
 const SettingsContext = createContext<SettingsState | undefined>(undefined);
@@ -25,6 +30,8 @@ export function SettingsProvider({
   const [language, setLanguage] = useState<SupportedLanguage>("en");
   const [countryCode, setCountryCode] = useState<SupportedCountryCode>("NG");
   const [playbackRate, setPlaybackRate] = useState<number>(1.2);
+  const [voicePreference, setVoicePreference] = useState<VoicePreference>("voice");
+  const [discreetMode, setDiscreetMode] = useState<boolean>(false);
 
   // Load initial settings from localStorage on first mount
   useEffect(() => {
@@ -33,6 +40,8 @@ export function SettingsProvider({
       const storedLanguage = window.localStorage.getItem("sc_language");
       const storedCountry = window.localStorage.getItem("sc_country_code");
       const storedPlayback = window.localStorage.getItem("sc_playback_rate");
+        const storedVoicePref = window.localStorage.getItem("sc_voice_pref");
+        const storedDiscreet = window.localStorage.getItem("sc_discreet_mode");
 
       if (storedLanguage === "en" || storedLanguage === "fr") {
         setLanguage(storedLanguage);
@@ -55,6 +64,14 @@ export function SettingsProvider({
           setPlaybackRate(n);
         }
       }
+
+      if (storedVoicePref === "voice" || storedVoicePref === "text") {
+        setVoicePreference(storedVoicePref);
+      }
+
+      if (storedDiscreet === "true") {
+        setDiscreetMode(true);
+      }
     } catch {
       // ignore localStorage errors
     }
@@ -67,10 +84,12 @@ export function SettingsProvider({
       window.localStorage.setItem("sc_language", language);
       window.localStorage.setItem("sc_country_code", countryCode);
       window.localStorage.setItem("sc_playback_rate", String(playbackRate));
+      window.localStorage.setItem("sc_voice_pref", voicePreference);
+        window.localStorage.setItem("sc_discreet_mode", String(discreetMode));
     } catch {
       // ignore localStorage errors
     }
-  }, [language, countryCode]);
+  }, [language, countryCode, playbackRate, voicePreference, discreetMode]);
 
   return (
     <SettingsContext.Provider
@@ -78,9 +97,13 @@ export function SettingsProvider({
         language,
         countryCode,
         playbackRate,
+          voicePreference,
+          discreetMode,
         setLanguage,
         setCountryCode,
         setPlaybackRate,
+          setVoicePreference,
+          setDiscreetMode,
       }}
     >
       {children}
