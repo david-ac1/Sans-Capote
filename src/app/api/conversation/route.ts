@@ -3,6 +3,7 @@ import { countryGuides } from "../../../data/countryGuides";
 import { resources } from "../../../data/resources";
 import { servicesDirectory } from "../../../data/servicesDirectory";
 import { logConversationMetric } from "../../../lib/metrics";
+import { rateLimit, sanitizeInput } from "../../../middleware/security";
 
 // Simple types for the conversation API. We can later extend this when wiring Gemini.
 
@@ -517,6 +518,22 @@ function buildMockAnswer({
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
+  
+  // Rate limiting: 60 requests per minute per IP
+  const { allowed, remaining } = rateLimit(request, 60, 60000);
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "Too many requests. Please try again in a minute." },
+      { 
+        status: 429,
+        headers: {
+          'X-RateLimit-Remaining': '0',
+          'Retry-After': '60',
+        }
+      }
+    );
+  }
+  
   let body: ConversationRequestBody | null = null;
 
   try {
@@ -544,13 +561,16 @@ export async function POST(request: NextRequest) {
       body.messages = body.messages.slice(-MAX_MESSAGES);
     }
 
-    body.messages = body.messages.map((m) => ({
-      ...m,
-      content:
-        m.content.length > MAX_MESSAGE_LENGTH
-          ? `${m.content.slice(0, MAX_MESSAGE_LENGTH)}…`
-          : m.content,
-    }));
+    // Sanitize message content and enforce length limits
+    body.messages = body.messages.map((m) => {
+      const truncated = m.content.length > MAX_MESSAGE_LENGTH
+        ? `${m.content.slice(0, MAX_MESSAGE_LENGTH)}…`
+        : m.content;
+      return {
+        ...m,
+        content: sanitizeInput(truncated),
+      };
+    });
 
     // Normalise language and mode values
     if (body.language !== "en" && body.language !== "fr") {

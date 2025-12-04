@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useSettings } from "../settings-provider";
+import GuideVoiceAgent from "../../components/GuideVoiceAgent";
+import ErrorBoundary from "../../components/ErrorBoundary";
 import { strings, t } from "../../i18n/strings";
 
 type Role = "user" | "assistant";
@@ -24,6 +26,7 @@ export default function GuidePage() {
   const { language, countryCode, playbackRate, voicePreference } = useSettings();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [useVoiceMode, setUseVoiceMode] = useState(false);
 
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -329,28 +332,48 @@ export default function GuidePage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-xl flex-col bg-zinc-950 px-4 py-6 text-zinc-50">
-      <header className="space-y-1 pb-3">
-        <h1 className="text-xl font-semibold">
-          {t(strings.guide.title, language)}
-        </h1>
-        <p className="text-xs text-zinc-300">
-          {t(strings.guide.intro, language)}
-        </p>
+      <header className="space-y-2 pb-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex-1">
+            <h1 className="text-xl font-semibold">
+              {t(strings.guide.title, language)}
+            </h1>
+            <p className="text-xs text-zinc-300">
+              {t(strings.guide.intro, language)}
+            </p>
+          </div>
+          <button
+            onClick={() => setUseVoiceMode(!useVoiceMode)}
+            className={`rounded-lg px-3 py-2 text-[10px] font-bold transition flex-shrink-0 ${
+              useVoiceMode
+                ? "bg-purple-900 text-purple-100"
+                : "border border-zinc-700 bg-zinc-900 text-zinc-300 hover:bg-zinc-800"
+            }`}
+            title={useVoiceMode ? "Voice mode ON" : "Enable voice mode"}
+          >
+            {useVoiceMode ? "🎤" : "📝"}
+          </button>
+        </div>
       </header>
 
-      <section className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900">
-        <div className="flex items-center justify-between border-b border-zinc-800 px-3 py-2 text-[10px] text-zinc-300">
-          <span>{language === "fr" ? "Conversation" : "Conversation"}</span>
-          <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] text-emerald-300">
-            {loading
-              ? language === "fr"
-                ? "Réflexion…"
-                : "Thinking…"
-              : language === "fr"
-              ? "Mode en ligne"
-              : "Online mode"}
-          </span>
-        </div>
+      {useVoiceMode ? (
+        <ErrorBoundary>
+          <GuideVoiceAgent onFallback={() => setUseVoiceMode(false)} />
+        </ErrorBoundary>
+      ) : (
+        <section className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900">
+          <div className="flex items-center justify-between border-b border-zinc-800 px-3 py-2 text-[10px] text-zinc-300">
+            <span>{language === "fr" ? "Conversation" : "Conversation"}</span>
+            <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] text-emerald-300">
+              {loading
+                ? language === "fr"
+                  ? "Réflexion…"
+                  : "Thinking…"
+                : language === "fr"
+                ? "Mode en ligne"
+                : "Online mode"}
+            </span>
+          </div>
 
         <div className="flex-1 space-y-3 overflow-y-auto px-3 py-3 text-xs">
           {messages.map((m, idx) => {
@@ -509,6 +532,7 @@ export default function GuidePage() {
           </button>
         </form>
       </section>
+      )}
     </main>
   );
 }

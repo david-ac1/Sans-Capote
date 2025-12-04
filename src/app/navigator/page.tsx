@@ -1,13 +1,21 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSettings } from "../settings-provider";
-import { servicesDirectory, type ServiceEntry } from "../../data/servicesDirectory";
+import { servicesDirectory } from "../../data/servicesDirectory";
 import { countryGuides } from "../../data/countryGuides";
 import { strings, t } from "../../i18n/strings";
 import { logConversationMetric } from "../../lib/metrics";
-import mapboxgl from "mapbox-gl";
-import "mapbox-gl/dist/mapbox-gl.css";
+import MapContainer from "../../components/MapContainer";
+
+const COUNTRY_CENTERS: Record<string, { lat: number; lng: number }> = {
+  NG: { lat: 6.5244, lng: 3.3792 },  // Lagos
+  GH: { lat: 5.6037, lng: -0.1870 }, // Accra
+  UG: { lat: 0.3136, lng: 32.5832 }, // Kampala
+  KE: { lat: -1.2832, lng: 36.8172 }, // Nairobi
+  ZA: { lat: -33.9249, lng: 18.4241 }, // Cape Town
+  RW: { lat: -1.9536, lng: 29.8739 }, // Kigali
+};
 
 type ViewMode = "triage" | "results";
 
@@ -18,6 +26,8 @@ interface GeolocationCoords {
 
 export default function NavigatorPage() {
   const { language, countryCode } = useSettings();
+  
+
   const [viewMode, setViewMode] = useState<ViewMode>("triage");
   const [timeSinceExposure, setTimeSinceExposure] = useState<number | null>(null);
   const [exposureType, setExposureType] = useState<string>("penetrative");
@@ -26,6 +36,8 @@ export default function NavigatorPage() {
   const [geoRequested, setGeoRequested] = useState(false);
   const [mapActive, setMapActive] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
+  const [filterTab, setFilterTab] = useState<"all" | "pep" | "prep" | "lgbtqia">("all");
+  const [formError, setFormError] = useState<string | null>(null);
 
   const guide = useMemo(
     () => countryGuides.find((c) => c.code === countryCode) ?? countryGuides[0],
@@ -72,6 +84,20 @@ export default function NavigatorPage() {
       .map(({ clinic }) => clinic);
   }, [userLocation, countryClinics]);
 
+  // Filter clinics based on selected tab
+  const filteredClinics = useMemo(() => {
+    switch (filterTab) {
+      case "pep":
+        return sortedClinics.filter((c) => c.pepAvailability && c.pepAvailability !== "unknown");
+      case "prep":
+        return sortedClinics.filter((c) => c.prepAvailability && c.prepAvailability !== "unknown");
+      case "lgbtqia":
+        return sortedClinics.filter((c) => c.lgbtqiaFriendly && c.lgbtqiaFriendly > 0);
+      default:
+        return sortedClinics;
+    }
+  }, [sortedClinics, filterTab]);
+
   // Determine PEP urgency
   const pepStatus = useMemo(() => {
     if (timeSinceExposure === null) return null;
@@ -80,6 +106,8 @@ export default function NavigatorPage() {
     }
     return "closed";
   }, [timeSinceExposure]);
+
+  // Map is handled by MapContainer component (keeps logic isolated)
 
   // Request geolocation
   const requestGeolocation = () => {
@@ -104,8 +132,13 @@ export default function NavigatorPage() {
   // Handle form submission
   const handleTriageSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (timeSinceExposure === null) return;
-    
+    if (timeSinceExposure === null) {
+      setFormError(language === "fr" ? "Veuillez indiquer le nombre d'heures depuis l'exposition." : "Please enter hours since exposure.");
+      return;
+    }
+
+    setFormError(null);
+
     // Log navigator event
     logConversationMetric({
       timestamp: new Date().toISOString(),
@@ -174,10 +207,16 @@ export default function NavigatorPage() {
                 min="0"
                 max="120"
                 value={timeSinceExposure ?? ""}
-                onChange={(e) => setTimeSinceExposure(e.target.value ? Number(e.target.value) : null)}
+                onChange={(e) => {
+                  setTimeSinceExposure(e.target.value ? Number(e.target.value) : null);
+                  setFormError(null);
+                }}
                 placeholder={language === "fr" ? "p. ex., 24" : "e.g., 24"}
                 className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-[11px] text-zinc-100 outline-none"
               />
+              {formError && (
+                <p className="mt-1 text-[11px] text-red-400">{formError}</p>
+              )}
             </div>
 
             {/* Exposure type */}
@@ -230,7 +269,7 @@ export default function NavigatorPage() {
           <div className="mt-6 space-y-4 border-t border-zinc-800 pt-4">
             <div className="space-y-2">
               <p className="text-[11px] font-semibold uppercase text-emerald-300">
-                PrEP – preventing HIV before exposure
+                PrEP – {language === "fr" ? "prévention avant exposition" : "preventing HIV before exposure"}
               </p>
               <h2 className="text-sm font-semibold text-zinc-50">{guide.prep.title}</h2>
               <div className="space-y-2">
@@ -279,7 +318,7 @@ export default function NavigatorPage() {
               <div className="mt-2 flex gap-2">
                 <button
                   onClick={requestGeolocation}
-                  className="flex-1 rounded-lg bg-emerald-500/20 px-2 py-1 text-center text-[11px] font-semibold text-emerald-100"
+                  className="flex-1 rounded-lg bg-emerald-500/20 px-2 py-1 text-center text-[11px] font-semibold text-emerald-100 hover:bg-emerald-500/30"
                 >
                   {t(strings.navigator.geoAllow, language)}
                 </button>
@@ -319,25 +358,120 @@ export default function NavigatorPage() {
 
           {/* Clinic list view */}
           {!mapActive && (
-            <div className="space-y-2">
+            <div className="space-y-3">
+              {/* Filter tabs */}
+              <div className="flex gap-1 overflow-x-auto pb-2">
+                <button
+                  onClick={() => setFilterTab("all")}
+                  className={`whitespace-nowrap rounded-lg px-3 py-1 text-[11px] font-semibold transition ${
+                    filterTab === "all"
+                      ? "bg-emerald-500 text-zinc-950"
+                      : "border border-zinc-700 bg-zinc-900 text-zinc-300 hover:bg-zinc-800"
+                  }`}
+                >
+                  📍 All
+                </button>
+                <button
+                  onClick={() => setFilterTab("pep")}
+                  className={`whitespace-nowrap rounded-lg px-3 py-1 text-[11px] font-semibold transition ${
+                    filterTab === "pep"
+                      ? "bg-red-600 text-white"
+                      : "border border-zinc-700 bg-zinc-900 text-zinc-300 hover:bg-zinc-800"
+                  }`}
+                >
+                  🔴 PEP
+                </button>
+                <button
+                  onClick={() => setFilterTab("prep")}
+                  className={`whitespace-nowrap rounded-lg px-3 py-1 text-[11px] font-semibold transition ${
+                    filterTab === "prep"
+                      ? "bg-blue-600 text-white"
+                      : "border border-zinc-700 bg-zinc-900 text-zinc-300 hover:bg-zinc-800"
+                  }`}
+                >
+                  💊 PrEP
+                </button>
+                <button
+                  onClick={() => setFilterTab("lgbtqia")}
+                  className={`whitespace-nowrap rounded-lg px-3 py-1 text-[11px] font-semibold transition ${
+                    filterTab === "lgbtqia"
+                      ? "bg-purple-600 text-white"
+                      : "border border-zinc-700 bg-zinc-900 text-zinc-300 hover:bg-zinc-800"
+                  }`}
+                >
+                  🏳️‍🌈 LGBTQIA+
+                </button>
+              </div>
+
               <p className="text-[11px] font-semibold text-zinc-300">
-                {t(strings.navigator.nearestClinics, language)}
+                {t(strings.navigator.nearestClinics, language)} ({filteredClinics.length})
               </p>
-              {sortedClinics.slice(0, 5).map((clinic) => (
-                <ClinicCard key={clinic.id} clinic={clinic} language={language} />
-              ))}
+              <div className="space-y-2">
+                {filteredClinics.slice(0, 5).map((clinic) => {
+                  const distance = userLocation && clinic.lat && clinic.lng
+                    ? computeDistance(userLocation.latitude, userLocation.longitude, clinic.lat, clinic.lng)
+                    : null;
+                  
+                  return (
+                    <div key={clinic.id} className="rounded-lg border border-zinc-800 bg-zinc-900 p-3 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[11px] font-semibold text-zinc-100 truncate">{clinic.name}</p>
+                          <div className="flex gap-2 items-center mt-1 flex-wrap">
+                            <p className="text-[10px] text-zinc-400">{clinic.city}</p>
+                            {distance !== null && (
+                              <p className="text-[10px] font-semibold text-emerald-400">
+                                📍 {distance.toFixed(1)} km
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-1 flex-wrap">
+                        {clinic.pepAvailability && clinic.pepAvailability !== "unknown" && (
+                          <span className={`text-[10px] font-semibold px-2 py-1 rounded ${
+                            clinic.pepAvailability === "high" ? "bg-red-900/50 text-red-200" :
+                            clinic.pepAvailability === "medium" ? "bg-orange-900/50 text-orange-200" :
+                            "bg-red-950/50 text-red-300"
+                          }`}>
+                            PEP
+                          </span>
+                        )}
+                        {clinic.prepAvailability && clinic.prepAvailability !== "unknown" && (
+                          <span className="text-[10px] font-semibold px-2 py-1 rounded bg-blue-900/50 text-blue-200">
+                            PrEP
+                          </span>
+                        )}
+                        {clinic.lgbtqiaFriendly && clinic.lgbtqiaFriendly > 0 && (
+                          <span className="text-[10px] font-semibold px-2 py-1 rounded bg-purple-900/50 text-purple-200">
+                            🏳️‍🌈
+                          </span>
+                        )}
+                      </div>
+                      {clinic.phone && (
+                        <a
+                          href={`tel:${clinic.phone}`}
+                          className="block w-full rounded-lg bg-emerald-600 px-2 py-1 text-center text-[10px] font-bold text-white hover:bg-emerald-700"
+                        >
+                          📞 Call
+                        </a>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 
-          {/* Map placeholder (Mapbox to be integrated) */}
+          {/* Map view */}
           {mapActive && (
-            <div className="rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-6 text-center text-[11px] text-zinc-400">
-              {language === "fr" ? "Carte à venir..." : "Map view coming soon..."}
-              <p className="mt-2 text-[10px]">
-                {language === "fr"
-                  ? "Les cliniques seront affichées sur la carte interactive Mapbox."
-                  : "Clinics will be displayed on an interactive Mapbox map."}
-              </p>
+            <div className="rounded-lg border border-zinc-800 overflow-hidden bg-zinc-900">
+              <MapContainer
+                clinics={sortedClinics}
+                userLocation={userLocation ? { lat: userLocation.latitude, lng: userLocation.longitude } : null}
+                countryCenter={COUNTRY_CENTERS[countryCode]}
+                height={400}
+              />
             </div>
           )}
 
@@ -346,8 +480,9 @@ export default function NavigatorPage() {
             onClick={() => {
               setViewMode("triage");
               setTimeSinceExposure(null);
+              setMapActive(false);
             }}
-            className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-[11px] font-semibold text-zinc-100"
+            className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-[11px] font-semibold text-zinc-100 hover:bg-zinc-800"
           >
             {language === "fr" ? "Retour à la forme" : "Back to form"}
           </button>
@@ -357,83 +492,4 @@ export default function NavigatorPage() {
   );
 }
 
-/**
- * Clinic card component showing ratings, availability, and CTAs
- */
-function ClinicCard({
-  clinic,
-  language,
-}: {
-  clinic: ServiceEntry;
-  language: "en" | "fr";
-}) {
-  const ratingStars = (rating?: number) => {
-    if (!rating) return "—";
-    return "★".repeat(Math.round(rating)) + "☆".repeat(5 - Math.round(rating));
-  };
-
-  const availabilityBadge = (availability?: "high" | "medium" | "low" | "unknown") => {
-    if (availability === "high") return "✓ High";
-    if (availability === "medium") return "◐ Medium";
-    if (availability === "low") return "✗ Low";
-    return "? Unknown";
-  };
-
-  return (
-    <div className="rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-3 text-[11px]">
-      {/* Name & type */}
-      <h3 className="font-semibold text-zinc-100">{clinic.name}</h3>
-      <p className="text-[10px] text-zinc-400">{clinic.city}</p>
-
-      {/* Ratings & availability */}
-      <div className="mt-2 flex flex-wrap gap-2">
-        {clinic.lgbtqiaFriendly !== undefined && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-zinc-800 px-2 py-1 text-[10px]">
-            <span>🏳️‍🌈</span>
-            <span>{ratingStars(clinic.lgbtqiaFriendly)}</span>
-          </span>
-        )}
-        {clinic.pepAvailability && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-red-900/30 px-2 py-1 text-[10px] text-red-100">
-            <span>PEP:</span>
-            <span>{availabilityBadge(clinic.pepAvailability)}</span>
-          </span>
-        )}
-        {clinic.prepAvailability && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-900/30 px-2 py-1 text-[10px] text-emerald-100">
-            <span>PrEP:</span>
-            <span>{availabilityBadge(clinic.prepAvailability)}</span>
-          </span>
-        )}
-      </div>
-
-      {/* Notes */}
-      <p className="mt-2 text-[10px] text-zinc-300">
-        {language === "fr" ? clinic.notesFr : clinic.notesEn}
-      </p>
-
-      {/* CTA buttons */}
-      <div className="mt-2 flex gap-2">
-        {clinic.phone && (
-          <a
-            href={`tel:${clinic.phone}`}
-            className="flex-1 rounded-lg bg-emerald-500/20 px-2 py-1 text-center text-[10px] font-semibold text-emerald-100 hover:bg-emerald-500/30"
-          >
-            {language === "fr" ? "Appeler" : "Call"}
-          </a>
-        )}
-        {clinic.lat && clinic.lng && (
-          <a
-            href={`https://www.google.com/maps/dir/?api=1&destination=${clinic.lat},${clinic.lng}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1 rounded-lg bg-blue-500/20 px-2 py-1 text-center text-[10px] font-semibold text-blue-100 hover:bg-blue-500/30"
-          >
-            {language === "fr" ? "Itinéraire" : "Directions"}
-          </a>
-        )}
-      </div>
-    </div>
-  );
-}
 

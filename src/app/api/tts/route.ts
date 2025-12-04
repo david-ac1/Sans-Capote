@@ -1,8 +1,31 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit, sanitizeInput } from '../../../middleware/security';
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  // Rate limiting: 100 requests per minute per IP
+  const { allowed, remaining } = rateLimit(req, 100, 60000);
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "Too many requests. Please try again in a minute." },
+      { 
+        status: 429,
+        headers: {
+          'X-RateLimit-Remaining': '0',
+          'Retry-After': '60',
+        }
+      }
+    );
+  }
+  
   try {
     const { text, language = 'en' } = await req.json();
+    
+    // Sanitize and limit text length
+    const sanitizedText = sanitizeInput(text).slice(0, 5000);
+    
+    if (!sanitizedText) {
+      return NextResponse.json({ error: "Invalid text input" }, { status: 400 });
+    }
     
     // Select voice based on language
     const voiceId = language === 'fr' 
@@ -18,7 +41,7 @@ export async function POST(req: Request) {
           'xi-api-key': process.env.ELEVENLABS_API_KEY || '',
         },
         body: JSON.stringify({
-          text,
+          text: sanitizedText,
           model_id: 'eleven_multilingual_v2',
           voice_settings: {
             stability: 0.5,

@@ -4,6 +4,7 @@ import "./globals.css";
 import { SettingsProvider } from "./settings-provider";
 import { AppShell } from "./app-shell";
 import { SwRegister } from "./sw-register";
+import { ErrorBoundary } from "../lib/ErrorBoundary";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,10 +32,12 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <SettingsProvider>
-          <SwRegister />
-          <AppShell>{children}</AppShell>
-        </SettingsProvider>
+        <ErrorBoundary>
+          <SettingsProvider>
+            <SwRegister />
+            <AppShell>{children}</AppShell>
+          </SettingsProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );

@@ -123,7 +123,7 @@ export default function SettingsPage() {
           </div>
           <button
             type="button"
-            onClick={() => setDiscreetMode((v) => !v)}
+            onClick={() => setDiscreetMode(!discreetMode)}
             className={`flex h-6 w-11 items-center rounded-full border border-zinc-700 px-0.5 text-[10px] transition-colors ${
               discreetMode ? "bg-emerald-500" : "bg-zinc-900"
             }`}
