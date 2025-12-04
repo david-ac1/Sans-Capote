@@ -1,7 +1,16 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from 'next/server';
+import { 
+  analyzeSentiment, 
+  generateAdaptivePrompt, 
+  EmotionalJourneyTracker,
+  type SentimentAnalysis 
+} from '@/lib/sentiment-analysis';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+
+// Store emotional journey trackers (in production, use Redis or similar)
+const journeyTrackers = new Map<string, EmotionalJourneyTracker>();
 
 // System prompt that sets the context for HIV education
 const getSystemPrompt = () => {
@@ -37,7 +46,7 @@ ${JSON.stringify({ resources }, null, 2)}`;
 
 export async function POST(req: Request) {
   try {
-    const { messages, countryCode } = await req.json();
+    const { messages, countryCode, sessionId, language = 'en' } = await req.json();
     
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json(
@@ -46,10 +55,28 @@ export async function POST(req: Request) {
       );
     }
 
-    const SYSTEM_PROMPT = getSystemPrompt();
+    // Analyze sentiment of the latest user message
+    const userMessage = messages[messages.length - 1].content;
+    const sentiment: SentimentAnalysis = analyzeSentiment(userMessage, language);
+    
+    // Track emotional journey if session ID provided
+    let emotionalTrend: 'improving' | 'worsening' | 'stable' = 'stable';
+    if (sessionId) {
+      let tracker = journeyTrackers.get(sessionId);
+      if (!tracker) {
+        tracker = new EmotionalJourneyTracker(sessionId);
+        journeyTrackers.set(sessionId, tracker);
+      }
+      tracker.addState(sentiment, 'user_message');
+      emotionalTrend = tracker.getTrend();
+    }
+
+    // Generate adaptive system prompt based on emotional state
+    const BASE_SYSTEM_PROMPT = getSystemPrompt();
+    const SYSTEM_PROMPT = generateAdaptivePrompt(BASE_SYSTEM_PROMPT, sentiment, language);
     
     // Format messages for Gemini
-    const historyMessages = messages.slice(0, -1).map((msg: any) => ({
+    const historyMessages = messages.slice(0, -1).map((msg: {role: string, content: string}) => ({
       role: msg.role === 'user' ? 'user' : 'model',
       parts: [{ text: msg.content }],
     }));
@@ -68,23 +95,35 @@ export async function POST(req: Request) {
       ],
     });
 
-    const userMessage = messages[messages.length - 1].content;
     const result = await chat.sendMessage(userMessage);
     const response = await result.response;
     const text = response.text();
 
-    // Generate contextual follow-up suggestions based on the conversation
-    const suggestions = [
-      "What are the symptoms of HIV?",
-      "How can I get tested?",
-      "What's the difference between HIV and AIDS?",
-      "How effective is PrEP?"
-    ];
+    // Generate contextual follow-up suggestions based on emotional state
+    const suggestions = generateSuggestions(sentiment, emotionalTrend, language);
+
+    // Add crisis intervention if needed
+    let crisisNotice = undefined;
+    if (sentiment.stressLevel === 'critical' || sentiment.emotionalState === 'distressed') {
+      crisisNotice = language === 'fr' 
+        ? "Si vous êtes en détresse immédiate, veuillez contacter une ligne d'urgence ou vous rendre aux urgences les plus proches."
+        : "If you're in immediate distress, please contact an emergency hotline or go to the nearest emergency room.";
+    }
 
     return NextResponse.json({
       answer: text,
       suggestions,
-      safetyNotice: "This information is for educational purposes only and not a substitute for professional medical advice."
+      safetyNotice: language === 'fr' 
+        ? "Cette information est à but éducatif uniquement et ne remplace pas les conseils médicaux professionnels."
+        : "This information is for educational purposes only and not a substitute for professional medical advice.",
+      sentiment: {
+        emotionalState: sentiment.emotionalState,
+        stressLevel: sentiment.stressLevel,
+        suggestedTone: sentiment.suggestedTone,
+        trend: emotionalTrend,
+      },
+      voiceSettings: sentiment.voiceSettings,
+      crisisNotice,
     });
 
   } catch (error) {
@@ -103,4 +142,87 @@ export async function POST(req: Request) {
       { status: 500 }
     );
   }
+}
+
+/**
+ * Generate contextual suggestions based on emotional state
+ */
+function generateSuggestions(
+  sentiment: SentimentAnalysis,
+  _trend: 'improving' | 'worsening' | 'stable',
+  language: 'en' | 'fr'
+): string[] {
+  const suggestions = {
+    en: {
+      distressed: [
+        "Where can I get immediate help?",
+        "What are emergency resources near me?",
+        "I need to talk to someone now",
+        "Find crisis hotlines"
+      ],
+      anxious: [
+        "What should I do first?",
+        "How soon can I get tested?",
+        "What are the symptoms?",
+        "Is PEP available near me?"
+      ],
+      confused: [
+        "Explain PrEP in simple terms",
+        "What's the difference between PrEP and PEP?",
+        "How does HIV testing work?",
+        "What are my options?"
+      ],
+      neutral: [
+        "What are the symptoms of HIV?",
+        "How can I get tested?",
+        "What's the difference between HIV and AIDS?",
+        "How effective is PrEP?"
+      ],
+      hopeful: [
+        "Where can I start PrEP?",
+        "Tell me about treatment options",
+        "How can I stay healthy?",
+        "Find support groups"
+      ]
+    },
+    fr: {
+      distressed: [
+        "Où puis-je obtenir de l'aide immédiate?",
+        "Quelles sont les ressources d'urgence près de moi?",
+        "J'ai besoin de parler à quelqu'un maintenant",
+        "Trouver des lignes d'urgence"
+      ],
+      anxious: [
+        "Que dois-je faire en premier?",
+        "Dans combien de temps puis-je me faire tester?",
+        "Quels sont les symptômes?",
+        "Le TPE est-il disponible près de moi?"
+      ],
+      confused: [
+        "Expliquer la PrEP en termes simples",
+        "Quelle est la différence entre PrEP et TPE?",
+        "Comment fonctionne le test VIH?",
+        "Quelles sont mes options?"
+      ],
+      neutral: [
+        "Quels sont les symptômes du VIH?",
+        "Comment puis-je me faire tester?",
+        "Quelle est la différence entre VIH et SIDA?",
+        "Quelle est l'efficacité de la PrEP?"
+      ],
+      hopeful: [
+        "Où puis-je commencer la PrEP?",
+        "Parlez-moi des options de traitement",
+        "Comment puis-je rester en bonne santé?",
+        "Trouver des groupes de soutien"
+      ]
+    }
+  };
+  
+  const state = sentiment.emotionalState === 'angry' ? 'anxious' 
+    : sentiment.emotionalState === 'calm' ? 'neutral'
+    : sentiment.emotionalState in suggestions[language] ? sentiment.emotionalState
+    : 'neutral';
+  
+  return suggestions[language][state as keyof typeof suggestions['en']];
 }

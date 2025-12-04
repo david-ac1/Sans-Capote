@@ -4,6 +4,15 @@ import { resources } from "../../../data/resources";
 import { servicesDirectory } from "../../../data/servicesDirectory";
 import { logConversationMetric } from "../../../lib/metrics";
 import { rateLimit, sanitizeInput } from "../../../middleware/security";
+import { 
+  analyzeSentiment, 
+  generateAdaptivePrompt, 
+  EmotionalJourneyTracker,
+  type SentimentAnalysis 
+} from '@/lib/sentiment-analysis';
+
+// Store emotional journey trackers (in production, use Redis or similar)
+const journeyTrackers = new Map<string, EmotionalJourneyTracker>();
 
 // Simple types for the conversation API. We can later extend this when wiring Gemini.
 
@@ -27,6 +36,7 @@ interface ConversationRequestBody {
   countryCode?: string; // e.g. "NG", "KE", "UG", "ZA", "RW", "GH"
   mode?: "general" | "crisis" | "navigator" | "resources";
   crisisContext?: CrisisContext;
+  sessionId?: string; // For emotional journey tracking
 }
 
 interface ConversationAnswer {
@@ -44,6 +54,19 @@ interface ConversationAnswer {
   // option when fullAnswer is present and longer than shortAnswer.
   fullAnswer?: string;
   shortAnswer?: string;
+  // Sentiment analysis data
+  sentiment?: {
+    emotionalState: string;
+    stressLevel: string;
+    suggestedTone: string;
+    trend: 'improving' | 'worsening' | 'stable';
+  };
+  voiceSettings?: {
+    stability: number;
+    similarityBoost: number;
+    style: number;
+  };
+  crisisNotice?: string;
 }
 
 async function tryGeminiAnswer(
@@ -58,9 +81,27 @@ async function tryGeminiAnswer(
     countryCode,
     mode = "general",
     crisisContext,
+    sessionId,
   } = body;
 
   const isFrench = language === "fr";
+
+  // Analyze sentiment of the latest user message
+  const lastUserMessage = [...messages].reverse().find((m) => m.role === "user");
+  const userContent = lastUserMessage?.content ?? "";
+  const sentiment: SentimentAnalysis = analyzeSentiment(userContent, language);
+  
+  // Track emotional journey if session ID provided
+  let emotionalTrend: 'improving' | 'worsening' | 'stable' = 'stable';
+  if (sessionId) {
+    let tracker = journeyTrackers.get(sessionId);
+    if (!tracker) {
+      tracker = new EmotionalJourneyTracker(sessionId);
+      journeyTrackers.set(sessionId, tracker);
+    }
+    tracker.addState(sentiment, 'user_message');
+    emotionalTrend = tracker.getTrend();
+  }
 
   const baseSafetyNoticeEn =
     "This information is educational and not a medical diagnosis. If you feel very unwell, have severe pain, heavy bleeding, or trouble breathing, go to the nearest clinic or hospital immediately.";
@@ -119,12 +160,12 @@ async function tryGeminiAnswer(
 
   // Truncate very long user content to avoid sending excessive context to Gemini
   const rawUserContent = lastUserMessage?.content ?? "";
-  const userContent =
+  const truncatedUserContent =
     rawUserContent.length > 2000
       ? `${rawUserContent.slice(0, 2000)}…`
       : rawUserContent;
 
-  const systemPrompt = isFrench
+  const baseSystemPrompt = isFrench
     ? `Tu es Sans Capote, un assistant numérique en santé sexuelle et prévention du VIH pour des personnes vivant en Afrique. Tu dois :
 - Utiliser un langage simple, chaleureux, sans jugement, adapté à des personnes sans formation médicale.
 - Parler comme une vraie personne : naturel, conversationnel, avec empathie.
@@ -182,6 +223,9 @@ ${localServicesSnippet || "(no specific local services listed yet)"}
 
 Reply ONLY in English.`;
 
+  // Apply sentiment-aware adaptive prompt
+  const systemPrompt = generateAdaptivePrompt(baseSystemPrompt, sentiment, language);
+
   const modelName = "gemini-2.5-flash";
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
@@ -192,7 +236,7 @@ Reply ONLY in English.`;
         parts: [
           { text: systemPrompt },
           {
-            text: `User question and context (mode=${mode}, language=${language}, countryCode=${countryCode ?? "unknown"}):\n${userContent}`,
+            text: `User question and context (mode=${mode}, language=${language}, countryCode=${countryCode ?? "unknown"}):\n${truncatedUserContent}`,
           },
         ],
       },
@@ -239,22 +283,23 @@ Reply ONLY in English.`;
 
     const short = makeShort(text);
 
-    const suggestions = isFrench
-      ? [
-          "Explique-moi une autre option de prévention adaptée à ma situation.",
-          "Aide-moi à préparer ce que je peux dire à la clinique.",
-          "Dis-moi quand refaire un test de dépistage après cette situation.",
-        ]
-      : [
-          "Suggest another HIV prevention option that could fit my situation.",
-          "Help me practice what to say when I get to the clinic.",
-          "Tell me when I should plan follow-up HIV tests after this.",
-        ];
+    // Generate sentiment-aware suggestions
+    const suggestions = generateSentimentSuggestions(sentiment, emotionalTrend, isFrench);
+
+    // Add crisis notice if needed
+    let crisisNotice = undefined;
+    if (sentiment.stressLevel === 'critical' || sentiment.emotionalState === 'distressed') {
+      crisisNotice = isFrench 
+        ? "Si vous êtes en détresse immédiate, veuillez contacter une ligne d'urgence ou vous rendre aux urgences les plus proches."
+        : "If you're in immediate distress, please contact an emergency hotline or go to the nearest emergency room.";
+    }
 
     console.log("[conversation] Using Gemini answer", {
       language,
       countryCode,
       mode,
+      sentiment: sentiment.emotionalState,
+      stressLevel: sentiment.stressLevel,
     });
 
     return {
@@ -263,6 +308,14 @@ Reply ONLY in English.`;
       shortAnswer: short,
       suggestions,
       safetyNotice,
+      sentiment: {
+        emotionalState: sentiment.emotionalState,
+        stressLevel: sentiment.stressLevel,
+        suggestedTone: sentiment.suggestedTone,
+        trend: emotionalTrend,
+      },
+      voiceSettings: sentiment.voiceSettings,
+      crisisNotice,
       meta: {
         language,
         countryCode,
@@ -274,6 +327,78 @@ Reply ONLY in English.`;
     console.error("Gemini call failed", error);
     return null;
   }
+}
+
+/**
+ * Generate contextual suggestions based on emotional state
+ */
+function generateSentimentSuggestions(
+  sentiment: SentimentAnalysis,
+  trend: 'improving' | 'worsening' | 'stable',
+  isFrench: boolean
+): string[] {
+  const suggestions = {
+    distressed: isFrench ? [
+      "Où puis-je obtenir de l'aide immédiate?",
+      "Quelles sont les ressources d'urgence près de moi?",
+      "J'ai besoin de parler à quelqu'un maintenant",
+      "Trouver des lignes d'urgence"
+    ] : [
+      "Where can I get immediate help?",
+      "What are emergency resources near me?",
+      "I need to talk to someone now",
+      "Find crisis hotlines"
+    ],
+    anxious: isFrench ? [
+      "Que dois-je faire en premier?",
+      "Dans combien de temps puis-je me faire tester?",
+      "Quels sont les symptômes?",
+      "Le TPE est-il disponible près de moi?"
+    ] : [
+      "What should I do first?",
+      "How soon can I get tested?",
+      "What are the symptoms?",
+      "Is PEP available near me?"
+    ],
+    confused: isFrench ? [
+      "Expliquer la PrEP en termes simples",
+      "Quelle est la différence entre PrEP et TPE?",
+      "Comment fonctionne le test VIH?",
+      "Quelles sont mes options?"
+    ] : [
+      "Explain PrEP in simple terms",
+      "What's the difference between PrEP and PEP?",
+      "How does HIV testing work?",
+      "What are my options?"
+    ],
+    neutral: isFrench ? [
+      "Explique-moi une autre option de prévention adaptée à ma situation.",
+      "Aide-moi à préparer ce que je peux dire à la clinique.",
+      "Dis-moi quand refaire un test de dépistage après cette situation.",
+    ] : [
+      "Suggest another HIV prevention option that could fit my situation.",
+      "Help me practice what to say when I get to the clinic.",
+      "Tell me when I should plan follow-up HIV tests after this.",
+    ],
+    hopeful: isFrench ? [
+      "Où puis-je commencer la PrEP?",
+      "Parlez-moi des options de traitement",
+      "Comment puis-je rester en bonne santé?",
+      "Trouver des groupes de soutien"
+    ] : [
+      "Where can I start PrEP?",
+      "Tell me about treatment options",
+      "How can I stay healthy?",
+      "Find support groups"
+    ]
+  };
+  
+  const state = sentiment.emotionalState === 'angry' ? 'anxious' 
+    : sentiment.emotionalState === 'calm' ? 'neutral'
+    : sentiment.emotionalState in suggestions ? sentiment.emotionalState
+    : 'neutral';
+  
+  return suggestions[state as keyof typeof suggestions];
 }
 
 function buildMockAnswer({

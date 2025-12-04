@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { useSettings } from "../settings-provider";
 import GuideVoiceAgent from "../../components/GuideVoiceAgent";
 import ErrorBoundary from "../../components/ErrorBoundary";
+import SentimentIndicator from "../../components/SentimentIndicator";
 import { strings, t } from "../../i18n/strings";
+import type { EmotionalState, StressLevel } from "@/lib/sentiment-analysis";
 
 type Role = "user" | "assistant";
 
@@ -15,9 +17,23 @@ interface ChatMessage {
   fullContent?: string;
 }
 
+interface SentimentData {
+  emotionalState: EmotionalState;
+  stressLevel: StressLevel;
+  suggestedTone: string;
+  trend: 'improving' | 'worsening' | 'stable';
+}
+
 interface ConversationResponse {
   answer: string;
   suggestions: string[];
+  sentiment?: SentimentData;
+  voiceSettings?: {
+    stability: number;
+    similarityBoost: number;
+    style: number;
+  };
+  crisisNotice?: string;
 }
 
 type SpeechRecognition = any;
@@ -39,6 +55,10 @@ export default function GuidePage() {
   const [voiceLoading, setVoiceLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [sentiment, setSentiment] = useState<SentimentData | null>(null);
+  const [crisisNotice, setCrisisNotice] = useState<string | null>(null);
+  const [voiceSettings, setVoiceSettings] = useState<ConversationResponse['voiceSettings'] | null>(null);
+  const [sessionId] = useState(() => `session-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -109,6 +129,7 @@ export default function GuidePage() {
         body: JSON.stringify({
           text,
           language,
+          voiceSettings, // Pass sentiment-aware voice settings
         }),
       });
 
@@ -207,6 +228,7 @@ export default function GuidePage() {
           language,
           countryCode,
           mode: "general",
+          sessionId, // Pass session ID for emotional journey tracking
         }),
       });
 
@@ -229,6 +251,21 @@ export default function GuidePage() {
         },
       ]);
       setSuggestions(data.suggestions);
+      
+      // Update sentiment data
+      if (data.sentiment) {
+        setSentiment(data.sentiment);
+      }
+      
+      // Update voice settings for adaptive tone
+      if (data.voiceSettings) {
+        setVoiceSettings(data.voiceSettings);
+      }
+      
+      // Show crisis notice if present
+      if (data.crisisNotice) {
+        setCrisisNotice(data.crisisNotice);
+      }
     } catch (e) {
       console.error(e);
       setError(
@@ -433,6 +470,22 @@ export default function GuidePage() {
             <div className="rounded-lg border border-red-900 bg-red-950 px-3 py-2 text-[11px] text-red-100">
               {error}
             </div>
+          )}
+
+          {crisisNotice && (
+            <div className="rounded-lg border border-red-900 bg-red-950 px-3 py-2 text-xs text-red-100 font-medium">
+              ⚠️ {crisisNotice}
+            </div>
+          )}
+
+          {sentiment && (
+            <SentimentIndicator
+              emotionalState={sentiment.emotionalState}
+              stressLevel={sentiment.stressLevel}
+              trend={sentiment.trend}
+              language={language}
+              compact={true}
+            />
           )}
 
           {suggestions.length > 0 && (

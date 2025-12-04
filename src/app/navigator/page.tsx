@@ -7,6 +7,8 @@ import { countryGuides } from "../../data/countryGuides";
 import { strings, t } from "../../i18n/strings";
 import { logConversationMetric } from "../../lib/metrics";
 import MapContainer from "../../components/MapContainer";
+import { usePlacesEnrichment } from "../../hooks/usePlacesEnrichment";
+import { ServiceStatusBadge } from "../../components/ServiceStatusBadge";
 
 const COUNTRY_CENTERS: Record<string, { lat: number; lng: number }> = {
   NG: { lat: 6.5244, lng: 3.3792 },  // Lagos
@@ -97,6 +99,16 @@ export default function NavigatorPage() {
         return sortedClinics;
     }
   }, [sortedClinics, filterTab]);
+
+  // Enrich clinics with real-time Google Places data
+  const { services: enrichedClinics, isLoading: placesLoading } = usePlacesEnrichment(
+    filteredClinics,
+    {
+      enabled: isOnline && mapActive,
+      userLocation: userLocation ? { lat: userLocation.latitude, lng: userLocation.longitude } : null,
+      autoSort: true, // Sort by open status + distance
+    }
+  );
 
   // Determine PEP urgency
   const pepStatus = useMemo(() => {
@@ -403,30 +415,35 @@ export default function NavigatorPage() {
                 </button>
               </div>
 
-              <p className="text-[11px] font-semibold text-zinc-300">
-                {t(strings.navigator.nearestClinics, language)} ({filteredClinics.length})
-              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] font-semibold text-zinc-300">
+                  {t(strings.navigator.nearestClinics, language)} ({enrichedClinics.length})
+                </p>
+                {placesLoading && (
+                  <span className="text-[10px] text-blue-400 animate-pulse">
+                    {language === 'fr' ? 'Chargement...' : 'Loading...'}
+                  </span>
+                )}
+              </div>
               <div className="space-y-2">
-                {filteredClinics.slice(0, 5).map((clinic) => {
-                  const distance = userLocation && clinic.lat && clinic.lng
-                    ? computeDistance(userLocation.latitude, userLocation.longitude, clinic.lat, clinic.lng)
-                    : null;
-                  
+                {enrichedClinics.slice(0, 5).map((clinic) => {
                   return (
                     <div key={clinic.id} className="rounded-lg border border-zinc-800 bg-zinc-900 p-3 space-y-2">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
                           <p className="text-[11px] font-semibold text-zinc-100 truncate">{clinic.name}</p>
-                          <div className="flex gap-2 items-center mt-1 flex-wrap">
-                            <p className="text-[10px] text-zinc-400">{clinic.city}</p>
-                            {distance !== null && (
-                              <p className="text-[10px] font-semibold text-emerald-400">
-                                📍 {distance.toFixed(1)} km
-                              </p>
-                            )}
-                          </div>
+                          <p className="text-[10px] text-zinc-400 mt-0.5">{clinic.city}</p>
                         </div>
                       </div>
+                      
+                      {/* Real-time status from Google Places */}
+                      <ServiceStatusBadge 
+                        service={clinic} 
+                        language={language}
+                        showDistance={true}
+                        showRating={true}
+                      />
+                      
                       <div className="flex gap-1 flex-wrap">
                         {clinic.pepAvailability && clinic.pepAvailability !== "unknown" && (
                           <span className={`text-[10px] font-semibold px-2 py-1 rounded ${
