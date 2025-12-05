@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { EnrichedServiceEntry } from '@/lib/places-api';
+import { submitServiceRating, getServiceRatings, getServiceRatingComments, type ServiceRatingAggregate } from '@/lib/supabase';
 
 interface ServiceDetailsPanelProps {
   service: EnrichedServiceEntry;
   language: 'en' | 'fr';
   onClose: () => void;
   userLocation?: { lat: number; lng: number } | null;
+  isLoading?: boolean;
 }
 
 interface UserRating {
@@ -50,6 +52,7 @@ export default function ServiceDetailsPanel({
   language,
   onClose,
   userLocation,
+  isLoading = false,
 }: ServiceDetailsPanelProps) {
   const [showRatingForm, setShowRatingForm] = useState(false);
   const [userRating, setUserRating] = useState<UserRating>({
@@ -59,6 +62,24 @@ export default function ServiceDetailsPanel({
     judgementFree: true,
     comment: '',
   });
+  const [communityRatings, setCommunityRatings] = useState<ServiceRatingAggregate | null>(null);
+  const [ratingComments, setRatingComments] = useState<any[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+
+  // Load community ratings when service changes
+  useEffect(() => {
+    async function loadRatings() {
+      // AI services can also have ratings (stored by their generated id)
+      const ratings = await getServiceRatings(service.id);
+      setCommunityRatings(ratings);
+      
+      // Load comments
+      const comments = await getServiceRatingComments(service.id);
+      setRatingComments(comments);
+    }
+    loadRatings();
+  }, [service.id]);
 
   const notes = language === 'fr' ? service.notesFr : service.notesEn;
   const isOpen = service.realTimeStatus?.isOpen;
@@ -87,17 +108,57 @@ export default function ServiceDetailsPanel({
     return service.realTimeStatus.website;
   };
 
-  const handleSubmitRating = () => {
-    // TODO: Submit rating to backend/database
-    console.log('Submitting rating:', { serviceId: service.id, rating: userRating });
-    setShowRatingForm(false);
-    // Show success message
+  const handleSubmitRating = async () => {
+    setIsSubmitting(true);
+    setSubmitSuccess(false);
+    
+    // AI services can also receive ratings
+    const result = await submitServiceRating({
+      service_id: service.id,
+      friendliness: userRating.friendliness,
+      privacy: userRating.privacy,
+      wait_time: userRating.waitTime,
+      judgement_free: userRating.judgementFree,
+      comment: userRating.comment || undefined,
+    });
+    
+    setIsSubmitting(false);
+    
+    if (result.success) {
+      setSubmitSuccess(true);
+      setShowRatingForm(false);
+      
+      // Reload community ratings
+      const updatedRatings = await getServiceRatings(service.id);
+      setCommunityRatings(updatedRatings);
+      
+      // Reload comments
+      const updatedComments = await getServiceRatingComments(service.id);
+      setRatingComments(updatedComments);
+      
+      // Reset form
+      setUserRating({
+        friendliness: 0,
+        privacy: 0,
+        waitTime: 0,
+        judgementFree: true,
+        comment: '',
+      });
+      
+      // Show success message briefly
+      setTimeout(() => setSubmitSuccess(false), 3000);
+    } else {
+      alert(language === 'fr' 
+        ? `Erreur lors de l'envoi: ${result.error}`
+        : `Failed to submit: ${result.error}`
+      );
+    }
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="bg-white rounded-lg shadow-xl overflow-hidden flex flex-col h-full max-h-[90vh] lg:max-h-[85vh]">
       {/* Header */}
-      <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 p-4 text-white">
+      <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 p-4 text-white flex-shrink-0">
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <h2 className="text-xl font-bold mb-1">{service.name}</h2>
@@ -133,8 +194,29 @@ export default function ServiceDetailsPanel({
         )}
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      {/* Content - with explicit flex-1 and overflow */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4" style={{ minHeight: 0 }}>
+        {/* Loading skeleton */}
+        {isLoading && (
+          <div className="space-y-4 animate-pulse">
+            <div className="h-4 bg-zinc-200 rounded w-3/4"></div>
+            <div className="h-4 bg-zinc-200 rounded w-full"></div>
+            <div className="h-4 bg-zinc-200 rounded w-5/6"></div>
+            <div className="space-y-2 mt-4">
+              <div className="h-3 bg-zinc-200 rounded w-full"></div>
+              <div className="h-3 bg-zinc-200 rounded w-full"></div>
+              <div className="h-3 bg-zinc-200 rounded w-4/5"></div>
+            </div>
+            <div className="flex gap-2 mt-4">
+              <div className="h-8 bg-zinc-200 rounded w-24"></div>
+              <div className="h-8 bg-zinc-200 rounded w-24"></div>
+            </div>
+          </div>
+        )}
+        
+        {/* Actual content - hidden while loading */}
+        {!isLoading && (
+        <>
         {/* Google Rating */}
         {service.realTimeStatus?.rating && (
           <div className="flex items-center gap-2 pb-3 border-b border-zinc-200">
@@ -219,6 +301,65 @@ export default function ServiceDetailsPanel({
           </div>
         </div>
 
+        {/* AI Metadata - if present */}
+        {service.aiMetadata && (
+          <div className="border-t border-zinc-200 pt-4">
+            <h3 className="text-sm font-semibold text-zinc-900 mb-2 flex items-center gap-2">
+              <span className="text-lg">✨</span>
+              {language === 'fr' ? 'Informations IA' : 'AI Insights'}
+            </h3>
+            <div className="space-y-2 text-sm">
+              {service.aiMetadata.lgbtFriendlyScore !== undefined && (
+                <div className="flex items-center justify-between py-2 px-3 bg-purple-50 rounded-lg">
+                  <span className="text-zinc-700">
+                    {language === 'fr' ? '🏳️‍🌈 LGBT-Friendly' : '🏳️‍🌈 LGBT-Friendly'}
+                  </span>
+                  <span className="font-semibold text-purple-700">
+                    {service.aiMetadata.lgbtFriendlyScore}/5
+                  </span>
+                </div>
+              )}
+              {service.aiMetadata.hivTestingAvailable && (
+                <div className="py-2 px-3 bg-emerald-50 rounded-lg text-emerald-700">
+                  ✅ {language === 'fr' ? 'Dépistage VIH disponible' : 'HIV Testing Available'}
+                </div>
+              )}
+              {service.aiMetadata.prepAvailable && (
+                <div className="py-2 px-3 bg-blue-50 rounded-lg text-blue-700">
+                  💊 {language === 'fr' ? 'PrEP disponible' : 'PrEP Available'}
+                </div>
+              )}
+              {service.aiMetadata.pepAvailable && (
+                <div className="py-2 px-3 bg-orange-50 rounded-lg text-orange-700">
+                  🚨 {language === 'fr' ? 'PEP disponible' : 'PEP Available'}
+                </div>
+              )}
+              {service.aiMetadata.walkInAccepted && (
+                <div className="py-2 px-3 bg-zinc-50 rounded-lg text-zinc-700">
+                  🚶 {language === 'fr' ? 'Accueil sans rendez-vous' : 'Walk-in Accepted'}
+                </div>
+              )}
+              {service.aiMetadata.youthFriendly && (
+                <div className="py-2 px-3 bg-indigo-50 rounded-lg text-indigo-700">
+                  👥 {language === 'fr' ? 'Service jeunesse' : 'Youth-Friendly'}
+                </div>
+              )}
+              {service.aiMetadata.reasoning && (
+                <div className="mt-3 p-3 bg-zinc-50 rounded-lg">
+                  <p className="text-xs text-zinc-600 italic">
+                    "{service.aiMetadata.reasoning}"
+                  </p>
+                </div>
+              )}
+              {service.aiMetadata.confidenceScore !== undefined && (
+                <div className="mt-2 text-xs text-zinc-500">
+                  {language === 'fr' ? 'Confiance' : 'Confidence'}: {Math.round(service.aiMetadata.confidenceScore * 100)}%
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+        
         {/* User ratings section */}
         <div className="border-t border-zinc-200 pt-4">
           <div className="flex items-center justify-between mb-3">
@@ -235,6 +376,89 @@ export default function ServiceDetailsPanel({
               }
             </button>
           </div>
+
+          {/* Success message */}
+          {submitSuccess && (
+            <div className="mb-3 p-2 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+              ✅ {language === 'fr' ? 'Merci pour votre avis!' : 'Thank you for your feedback!'}
+            </div>
+          )}
+
+          {/* Community ratings summary */}
+          {communityRatings && communityRatings.total_ratings > 0 && (
+            <div className="mb-4 p-3 bg-zinc-50 rounded-lg space-y-2">
+              <div className="text-xs text-zinc-500 mb-2">
+                {language === 'fr' 
+                  ? `Basé sur ${communityRatings.total_ratings} avis`
+                  : `Based on ${communityRatings.total_ratings} rating${communityRatings.total_ratings > 1 ? 's' : ''}`
+                }
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-zinc-700">{language === 'fr' ? 'Convivialité' : 'Friendliness'}</span>
+                <div className="flex items-center gap-1">
+                  <span className="font-semibold text-zinc-900">{communityRatings.avg_friendliness.toFixed(1)}</span>
+                  <span className="text-xs text-zinc-500">/5</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-zinc-700">{language === 'fr' ? 'Confidentialité' : 'Privacy'}</span>
+                <div className="flex items-center gap-1">
+                  <span className="font-semibold text-zinc-900">{communityRatings.avg_privacy.toFixed(1)}</span>
+                  <span className="text-xs text-zinc-500">/5</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-zinc-700">{language === 'fr' ? 'Temps d\'attente' : 'Wait Time'}</span>
+                <div className="flex items-center gap-1">
+                  <span className="font-semibold text-zinc-900">{communityRatings.avg_wait_time.toFixed(1)}</span>
+                  <span className="text-xs text-zinc-500">/5</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between text-sm pt-2 border-t border-zinc-200">
+                <span className="text-zinc-700">{language === 'fr' ? 'Sans jugement' : 'Judgement-free'}</span>
+                <span className="font-semibold text-emerald-600">
+                  {communityRatings.judgement_free_percentage.toFixed(0)}%
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Comments section */}
+          {ratingComments.length > 0 && (
+            <div className="mb-4">
+              <h4 className="text-sm font-semibold text-zinc-900 mb-2">
+                {language === 'fr' ? '💬 Commentaires' : '💬 Comments'}
+              </h4>
+              <div className="space-y-3 max-h-64 overflow-y-auto">
+                {ratingComments.map((comment, index) => (
+                  <div key={index} className="bg-zinc-50 rounded-lg p-3 border border-zinc-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center gap-1 text-xs text-zinc-600">
+                        <span>⭐ {comment.friendliness}</span>
+                        <span className="text-zinc-400">•</span>
+                        <span>🔒 {comment.privacy}</span>
+                        <span className="text-zinc-400">•</span>
+                        <span>⏱️ {comment.wait_time}</span>
+                      </div>
+                      {comment.judgement_free && (
+                        <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
+                          🤝 {language === 'fr' ? 'Sans jugement' : 'Judgement-free'}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-zinc-700 leading-relaxed">{comment.comment}</p>
+                    <div className="text-xs text-zinc-400 mt-1">
+                      {new Date(comment.created_at).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {showRatingForm ? (
             <div className="bg-zinc-50 rounded-lg p-4 space-y-4">
@@ -274,10 +498,13 @@ export default function ServiceDetailsPanel({
               />
               <button
                 onClick={handleSubmitRating}
-                disabled={userRating.friendliness === 0 || userRating.privacy === 0}
+                disabled={userRating.friendliness === 0 || userRating.privacy === 0 || isSubmitting}
                 className="w-full bg-emerald-600 text-white py-2 rounded-lg font-medium hover:bg-emerald-700 disabled:bg-zinc-300 disabled:cursor-not-allowed transition-colors"
               >
-                {language === 'fr' ? 'Soumettre l\'évaluation' : 'Submit Rating'}
+                {isSubmitting 
+                  ? (language === 'fr' ? '⏳ Envoi...' : '⏳ Submitting...')
+                  : (language === 'fr' ? 'Soumettre l\'évaluation' : 'Submit Rating')
+                }
               </button>
             </div>
           ) : (
@@ -288,10 +515,12 @@ export default function ServiceDetailsPanel({
             </div>
           )}
         </div>
+        </>
+        )}
       </div>
 
-      {/* Action buttons */}
-      <div className="border-t border-zinc-200 p-4 bg-zinc-50">
+      {/* Action buttons - always visible */}
+      <div className="border-t border-zinc-200 p-4 bg-zinc-50 flex-shrink-0">
         <div className="grid grid-cols-2 gap-3">
           <a
             href={getDirectionsUrl()}

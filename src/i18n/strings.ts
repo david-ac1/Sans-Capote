@@ -33,8 +33,8 @@ export const strings = {
       },
       navigator: {
         title: {
-          en: "HIV Prevention Navigator",
-          fr: "Navigateur de prévention du VIH",
+          en: "HIV Services Navigator",
+          fr: "Navigateur de services du VIH",
         },
         body: {
           en: "Learn about PrEP, PEP, condoms, and testing in your country.",
@@ -155,7 +155,7 @@ export const strings = {
     },
   },
   navigator: {
-    title: { en: "HIV Prevention Navigator", fr: "Navigateur de prévention du VIH" },
+    title: { en: "HIV Services Navigator", fr: "Navigateur de services du VIH" },
     subtitle: {
       en: "Learn about PrEP, PEP, condoms, and HIV testing with guidance tailored to your country.",
       fr: "Comprenez la PrEP, la PEP, les préservatifs et le dépistage avec des conseils adaptés à votre pays.",

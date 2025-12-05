@@ -14,6 +14,7 @@ import {
   deduplicateServices,
   type AIDiscoveredService 
 } from "@/lib/ai-service-discovery";
+import { getServiceRatings, type ServiceRatingAggregate } from "@/lib/supabase";
 
 // Country center coordinates for map positioning
 const COUNTRY_CENTERS: Record<string, { lat: number; lng: number; zoom: number }> = {
@@ -33,8 +34,7 @@ export default function NavigatorPage() {
   const [selectedService, setSelectedService] = useState<EnrichedServiceEntry | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
-  const [aiRecommendations, setAiRecommendations] = useState<string>("");
-  const [loadingRecommendations, setLoadingRecommendations] = useState(false);
+  const [showEmptyState, setShowEmptyState] = useState(false);
   
   // Filter state - Initialize from countryCode but maintain independent state
   const [selectedCountry, setSelectedCountry] = useState<string>(() => {
@@ -53,12 +53,17 @@ export default function NavigatorPage() {
     serviceTypes: [] as string[],
     openNow: false,
     rating: 0,
+    communityRating: 0, // Minimum community rating (0-5)
+    judgementFree: false, // Only show judgement-free services
   });
+  
+  // Community ratings cache
+  const [communityRatings, setCommunityRatings] = useState<Map<string, ServiceRatingAggregate>>(new Map());
+  const [loadingCommunityRatings, setLoadingCommunityRatings] = useState(false);
   
   // AI discovery state
   const [aiServices, setAiServices] = useState<AIDiscoveredService[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
-  const [showAiServices, setShowAiServices] = useState(false);
 
   // Filter services by country
   const countryServices = useMemo(() => {
@@ -67,7 +72,7 @@ export default function NavigatorPage() {
   
   // Convert AI services to ServiceEntry format for merging
   const aiServicesAsEntries = useMemo((): ServiceEntry[] => {
-    if (!showAiServices || aiServices.length === 0) return [];
+    if (aiServices.length === 0) return [];
     
     return aiServices.map((aiService, index) => ({
       id: `ai_${selectedCountry}_${index}`,
@@ -92,7 +97,7 @@ export default function NavigatorPage() {
       lgbtqiaFriendly: aiService.metadata.lgbtFriendlyScore,
       aiMetadata: aiService.metadata,
     }));
-  }, [aiServices, showAiServices, selectedCountry]);
+  }, [aiServices, selectedCountry]);
   
   // Merge directory + AI services
   const mergedServices = useMemo(() => {
@@ -149,7 +154,7 @@ export default function NavigatorPage() {
       });
     }
 
-    // Rating filter
+    // Rating filter (Google Places)
     if (filters.rating > 0) {
       results = results.filter((service) => {
         const rating = service.realTimeStatus?.rating || 0;
@@ -157,8 +162,36 @@ export default function NavigatorPage() {
       });
     }
 
+    // Community rating filter
+    if (filters.communityRating > 0) {
+      results = results.filter((service) => {
+        const communityRating = communityRatings.get(service.id);
+        if (!communityRating) return false;
+        
+        // Use average of all rating categories
+        const avgRating = (
+          communityRating.avg_friendliness + 
+          communityRating.avg_privacy + 
+          communityRating.avg_wait_time
+        ) / 3;
+        
+        return avgRating >= filters.communityRating;
+      });
+    }
+
+    // Judgement-free filter
+    if (filters.judgementFree) {
+      results = results.filter((service) => {
+        const communityRating = communityRatings.get(service.id);
+        if (!communityRating) return false;
+        
+        // Show services with >75% judgement-free rating
+        return communityRating.judgement_free_percentage >= 75;
+      });
+    }
+
     return results;
-  }, [enrichedServices, searchQuery, filters, language]);
+  }, [enrichedServices, searchQuery, filters, language, communityRatings]);
 
   // Request user location
   const requestLocation = () => {
@@ -237,76 +270,100 @@ export default function NavigatorPage() {
     return () => clearTimeout(timer);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Sync with settings countryCode changes
+  // Sync with settings countryCode changes (only on initial mount)
   useEffect(() => {
-    if (countryCode && countryCode !== selectedCountry) {
-      setSelectedCountry(countryCode);
-      setMapCenter(COUNTRY_CENTERS[countryCode] || COUNTRY_CENTERS.NG);
+    // Only sync if user hasn't manually selected a country yet
+    if (countryCode && !window.sessionStorage.getItem('manualCountrySelection')) {
+      if (countryCode !== selectedCountry) {
+        console.log('🔄 Syncing from settings:', countryCode);
+        setSelectedCountry(countryCode);
+        setMapCenter(COUNTRY_CENTERS[countryCode] || COUNTRY_CENTERS.NG);
+      }
     }
-  }, [countryCode, selectedCountry]);
+  }, [countryCode]); // Only depend on countryCode, not selectedCountry
 
   // Update map center when country changes
   useEffect(() => {
-    const center = COUNTRY_CENTERS[selectedCountry] || COUNTRY_CENTERS.NG;
+    const center = COUNTRY_CENTERS[selectedCountry];
+    if (!center) {
+      console.error('❌ No center found for country:', selectedCountry);
+      setMapCenter(COUNTRY_CENTERS.NG);
+      return;
+    }
+    console.log('🗺️ Updating map center for', selectedCountry, ':', center);
     setMapCenter(center);
   }, [selectedCountry]);
 
-  // Get AI recommendations when filters change
-  const getAiRecommendations = async () => {
-    if (filters.serviceTypes.length === 0 && !searchQuery) {
-      setAiRecommendations(
-        language === 'fr'
-          ? '💡 Sélectionnez des filtres ou recherchez pour obtenir des recommandations IA'
-          : '💡 Select filters or search to get AI recommendations'
+  // Smart empty state - only show if no coordinates in DIRECTORY services
+  useEffect(() => {
+    setShowEmptyState(false);
+    
+    // Only check directory services (not AI services which load async)
+    const servicesWithCoords = countryServices.filter(s => s.lat && s.lng);
+    
+    console.log(`📊 ${selectedCountry}: ${countryServices.length} directory services, ${servicesWithCoords.length} with coordinates`);
+    
+    // Only start timer if we have directory services but none have coordinates
+    if (countryServices.length > 0 && servicesWithCoords.length === 0) {
+      // Show message after 2 seconds
+      const showTimer = setTimeout(() => {
+        const currentServices = servicesDirectory.filter(s => s.country === selectedCountry);
+        const currentWithCoords = currentServices.filter(s => s.lat && s.lng);
+        if (currentWithCoords.length === 0) {
+          console.log('⚠️ Showing empty state for', selectedCountry);
+          setShowEmptyState(true);
+          
+          // Auto-hide after 5-10 seconds (based on service count)
+          const hideDelay = Math.min(10000, Math.max(5000, currentServices.length * 800));
+          const hideTimer = setTimeout(() => {
+            console.log('✅ Auto-hiding empty state after', hideDelay / 1000, 'seconds');
+            setShowEmptyState(false);
+          }, hideDelay);
+          
+          return () => clearTimeout(hideTimer);
+        }
+      }, 2000);
+      return () => clearTimeout(showTimer);
+    } else if (servicesWithCoords.length > 0) {
+      // If we have coordinates, never show empty state
+      console.log('✅ Has coordinates, hiding empty state');
+      setShowEmptyState(false);
+    }
+  }, [selectedCountry, countryServices]);
+
+  // Load community ratings for visible services
+  useEffect(() => {
+    async function loadCommunityRatings() {
+      if (countryServices.length === 0) return;
+      
+      setLoadingCommunityRatings(true);
+      console.log('📊 Loading community ratings for', countryServices.length, 'services...');
+      
+      const ratingsMap = new Map<string, ServiceRatingAggregate>();
+      
+      // Load ratings for all services in current country
+      await Promise.all(
+        countryServices.map(async (service) => {
+          const rating = await getServiceRatings(service.id);
+          if (rating) {
+            ratingsMap.set(service.id, rating);
+          }
+        })
       );
-      return;
+      
+      console.log('✅ Loaded', ratingsMap.size, 'community ratings');
+      setCommunityRatings(ratingsMap);
+      setLoadingCommunityRatings(false);
     }
     
-    setLoadingRecommendations(true);
-    try {
-      // Build context from filtered services
-      const serviceList = filteredServices.slice(0, 10).map(s => 
-        `${s.name} in ${s.city} (${s.phone || 'no phone'})`
-      ).join('; ');
-
-      const prompt = language === 'fr'
-        ? `Contexte: Services disponibles en ${selectedCountry}: ${serviceList}. Utilisateur cherche: ${filters.serviceTypes.join(', ')}${searchQuery ? ` "${searchQuery}"` : ''}. Recommande les 2-3 meilleurs services avec raisons spécifiques (max 100 mots). Formate: **Service**: raison`
-        : `Context: Available services in ${selectedCountry}: ${serviceList}. User looking for: ${filters.serviceTypes.join(', ')}${searchQuery ? ` "${searchQuery}"` : ''}. Recommend top 2-3 services with specific reasons (max 100 words). Format: **Service**: reason`;
-      
-      const response = await fetch('/api/conversation', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [{ role: 'user', content: prompt }],
-          language,
-          countryCode: selectedCountry,
-          mode: 'navigator',
-        }),
-      });
-      
-      const data = await response.json();
-      setAiRecommendations(data.answer || 
-        (language === 'fr' 
-          ? 'Aucune recommandation disponible pour cette recherche.'
-          : 'No recommendations available for this search.'));
-    } catch (error) {
-      console.error('Failed to get AI recommendations:', error);
-      setAiRecommendations(
-        language === 'fr'
-          ? '❌ Erreur lors du chargement des recommandations'
-          : '❌ Error loading recommendations'
-      );
-    } finally {
-      setLoadingRecommendations(false);
-    }
-  };
+    loadCommunityRatings();
+  }, [countryServices]);
   
   // AI service discovery (hybrid approach)
   const discoverAiServices = async () => {
     if (aiLoading) return;
     
     setAiLoading(true);
-    setAiRecommendations(""); // Clear text recommendations
     
     try {
       console.log('🔍 Discovering AI services for', selectedCountry);
@@ -336,17 +393,11 @@ export default function NavigatorPage() {
       console.log(`✅ ${unique.length} unique AI services after deduplication`);
       
       setAiServices(unique);
-      setShowAiServices(true);
       
-      // Show summary
-      const summary = language === 'fr'
-        ? `✨ ${unique.length} nouveau${unique.length > 1 ? 'x' : ''} service${unique.length > 1 ? 's' : ''} découvert${unique.length > 1 ? 's' : ''} par l'IA (affiché${unique.length > 1 ? 's' : ''} en orange sur la carte)`
-        : `✨ ${unique.length} new service${unique.length > 1 ? 's' : ''} discovered by AI (shown in orange on the map)`;
-      
-      setAiRecommendations(summary);
+      console.log('✨ Discovered', unique.length, 'new AI services');
     } catch (error) {
       console.error('AI discovery failed:', error);
-      setAiRecommendations(
+      alert(
         language === 'fr'
           ? '❌ Échec de la découverte IA. Affichage des services du répertoire uniquement.'
           : '❌ AI discovery failed. Showing directory services only.'
@@ -366,6 +417,44 @@ export default function NavigatorPage() {
     { value: 'lgbtqia', label: language === 'fr' ? 'LGBTQIA+' : 'LGBTQIA+ Friendly' },
   ];
 
+  // Detect country from coordinates
+  const detectCountryFromCoords = (lat: number, lng: number): string => {
+    // Country bounding boxes (approximate)
+    const countryBounds: Record<string, { minLat: number; maxLat: number; minLng: number; maxLng: number }> = {
+      NG: { minLat: 4.0, maxLat: 14.0, minLng: 2.5, maxLng: 15.0 }, // Nigeria
+      KE: { minLat: -5.0, maxLat: 5.5, minLng: 33.5, maxLng: 42.0 }, // Kenya
+      UG: { minLat: -1.5, maxLat: 4.5, minLng: 29.5, maxLng: 35.0 }, // Uganda
+      ZA: { minLat: -35.0, maxLat: -22.0, minLng: 16.0, maxLng: 33.0 }, // South Africa
+      RW: { minLat: -3.0, maxLat: -1.0, minLng: 28.8, maxLng: 30.9 }, // Rwanda
+      GH: { minLat: 4.5, maxLat: 11.5, minLng: -3.5, maxLng: 1.5 }, // Ghana
+    };
+
+    for (const [code, bounds] of Object.entries(countryBounds)) {
+      if (lat >= bounds.minLat && lat <= bounds.maxLat && lng >= bounds.minLng && lng <= bounds.maxLng) {
+        return code;
+      }
+    }
+
+    return selectedCountry; // Fallback to current selection
+  };
+
+  // Handle map clicks to update location
+  const handleMapClick = (coordinates: { lat: number; lng: number }) => {
+    const detectedCountry = detectCountryFromCoords(coordinates.lat, coordinates.lng);
+    console.log('🎯 Detected country from tap:', detectedCountry, 'at', coordinates);
+    
+    if (detectedCountry !== selectedCountry) {
+      handleCountryChange(detectedCountry);
+    }
+    
+    // Update map center to tapped location
+    setMapCenter({
+      lat: coordinates.lat,
+      lng: coordinates.lng,
+      zoom: 10, // Zoom in on tapped location
+    });
+  };
+
   // Available countries
   const countries = Array.from(new Set(servicesDirectory.map((s) => s.country))).sort();
 
@@ -379,34 +468,57 @@ export default function NavigatorPage() {
   };
 
   const handleCountryChange = (newCountry: string) => {
-    console.log('🌍 Changing country to:', newCountry);
-    setSelectedCountry(newCountry);
-    const newCenter = COUNTRY_CENTERS[newCountry] || COUNTRY_CENTERS.NG;
-    console.log('🎯 New map center:', newCenter);
-    setMapCenter(newCenter);
-    setSelectedService(null);
-    setAiRecommendations("");
+    console.log('🌍 Country change requested:', selectedCountry, '→', newCountry);
     
-    // Persist to settings context (global state)
+    // Prevent no-op changes
+    if (newCountry === selectedCountry) {
+      console.log('ℹ️ Same country, skipping');
+      return;
+    }
+    
+    // Mark as manual selection FIRST to prevent override
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.setItem('manualCountrySelection', 'true');
+      console.log('✅ Marked as manual selection');
+    }
+    
+    // Update all states atomically
+    const newCenter = COUNTRY_CENTERS[newCountry];
+    if (!newCenter) {
+      console.error('❌ Invalid country code:', newCountry);
+      return;
+    }
+    
+    console.log('🎯 New map center:', newCenter);
+    setSelectedCountry(newCountry);
+    setMapCenter(newCenter);
+    
+    // Clear selected service and AI services
+    setSelectedService(null);
+    setAiServices([]);
+    
+    // Update settings context (global state)
     if (setCountryCode) {
       setCountryCode(newCountry as import('@/data/countryGuides').CountryCode);
     }
     
-    // Persist to URL params (survives refresh)
+    // Update URL params (survives refresh)
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       params.set('country', newCountry);
       window.history.replaceState({}, '', `${window.location.pathname}?${params}`);
+      console.log('🔗 Updated URL:', `${window.location.pathname}?${params}`);
     }
     
     // Debug: Log service coordinates
-    const country = newCountry;
     setTimeout(() => {
-      const countryServices = servicesDirectory.filter(s => s.country === country);
+      const countryServices = servicesDirectory.filter(s => s.country === newCountry);
       const withCoords = countryServices.filter(s => s.lat && s.lng);
-      console.log(`📊 ${country}: ${countryServices.length} total, ${withCoords.length} with coordinates`);
+      console.log(`📊 ${newCountry}: ${countryServices.length} total, ${withCoords.length} with coordinates`);
       if (withCoords.length > 0) {
         console.log('Sample:', withCoords.slice(0, 2).map(s => ({ name: s.name, lat: s.lat, lng: s.lng })));
+      } else {
+        console.warn('⚠️ No services with coordinates in', newCountry);
       }
     }, 100);
   };
@@ -491,18 +603,23 @@ export default function NavigatorPage() {
               </div>
 
               <div className="flex flex-wrap gap-2">
-                {/* Country selector */}
-                <select
-                  value={selectedCountry}
-                  onChange={(e) => handleCountryChange(e.target.value)}
-                  className="px-3 py-1.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:ring-2 focus:ring-emerald-500"
-                >
-                  {countries.map((country) => (
-                    <option key={country} value={country}>
-                      {country}
-                    </option>
-                  ))}
-                </select>
+                {/* Country selector with visual feedback */}
+                <div className="relative">
+                  <select
+                    value={selectedCountry}
+                    onChange={(e) => handleCountryChange(e.target.value)}
+                    className="pl-8 pr-3 py-1.5 bg-zinc-800 border-2 border-emerald-600 rounded-lg text-sm text-white font-medium focus:ring-2 focus:ring-emerald-500 appearance-none cursor-pointer hover:bg-zinc-750 transition-colors"
+                  >
+                    {countries.map((country) => (
+                      <option key={country} value={country}>
+                        {country}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-emerald-400 pointer-events-none">
+                    📍
+                  </span>
+                </div>
 
                 {/* Service type filters */}
                 {serviceTypes.map((type) => (
@@ -531,7 +648,7 @@ export default function NavigatorPage() {
                   {language === 'fr' ? '🟢 Ouvert' : '🟢 Open Now'}
                 </button>
 
-                {/* Rating filter */}
+                {/* Rating filter (Google) */}
                 <select
                   value={filters.rating}
                   onChange={(e) =>
@@ -539,11 +656,44 @@ export default function NavigatorPage() {
                   }
                   className="px-3 py-1.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:ring-2 focus:ring-emerald-500"
                 >
-                  <option value={0}>{language === 'fr' ? 'Toutes notes' : 'All ratings'}</option>
+                  <option value={0}>{language === 'fr' ? 'Note Google' : 'Google Rating'}</option>
                   <option value={4.5}>⭐ 4.5+</option>
                   <option value={4.0}>⭐ 4.0+</option>
                   <option value={3.5}>⭐ 3.5+</option>
                 </select>
+
+                {/* Community rating filter */}
+                <select
+                  value={filters.communityRating}
+                  onChange={(e) =>
+                    setFilters((prev) => ({ ...prev, communityRating: Number(e.target.value) }))
+                  }
+                  disabled={loadingCommunityRatings}
+                  className="px-3 py-1.5 bg-purple-800 border border-purple-700 rounded-lg text-sm text-white focus:ring-2 focus:ring-purple-500 disabled:opacity-50"
+                >
+                  <option value={0}>
+                    {loadingCommunityRatings 
+                      ? (language === 'fr' ? '⏳ Chargement...' : '⏳ Loading...')
+                      : (language === 'fr' ? 'Note communauté' : 'Community Rating')
+                    }
+                  </option>
+                  <option value={4.5}>💜 4.5+</option>
+                  <option value={4.0}>💜 4.0+</option>
+                  <option value={3.5}>💜 3.5+</option>
+                  <option value={3.0}>💜 3.0+</option>
+                </select>
+
+                {/* Judgement-free filter */}
+                <button
+                  onClick={() => setFilters((prev) => ({ ...prev, judgementFree: !prev.judgementFree }))}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    filters.judgementFree
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                  }`}
+                >
+                  {language === 'fr' ? '🤝 Sans jugement' : '🤝 Judgement-free'}
+                </button>
 
                 {/* Location button */}
                 <button
@@ -553,18 +703,8 @@ export default function NavigatorPage() {
                 >
                   📍 {language === 'fr' ? 'Ma position' : 'My Location'}
                 </button>
-
-                {/* AI Recommendations button */}
-                <button
-                  onClick={getAiRecommendations}
-                  disabled={loadingRecommendations}
-                  className="px-3 py-1.5 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  title={language === 'fr' ? 'Recommandations texte IA' : 'AI Text Recommendations'}
-                >
-                  {loadingRecommendations ? '⏳' : '💬'} {language === 'fr' ? 'IA Texte' : 'AI Text'}
-                </button>
                 
-                {/* AI Discovery button - New */}
+                {/* AI Discovery button */}
                 <button
                   onClick={discoverAiServices}
                   disabled={aiLoading}
@@ -574,29 +714,6 @@ export default function NavigatorPage() {
                   {aiLoading ? '⏳' : '🔍'} {language === 'fr' ? 'Découvrir' : 'Discover'}
                 </button>
               </div>
-
-              {/* AI Recommendations display - Prominent */}
-              {aiRecommendations && (
-                <div className="mt-3 bg-gradient-to-r from-purple-900/90 to-purple-800/90 border-2 border-purple-500 px-4 py-3 rounded-lg shadow-lg">
-                  <div className="flex items-start gap-3">
-                    <span className="text-3xl">🤖</span>
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-purple-200 mb-2 text-sm">
-                        {language === 'fr' ? '💡 Recommandations IA' : '💡 AI Recommendations'}
-                      </h4>
-                      <div className="text-sm text-purple-100 leading-relaxed whitespace-pre-wrap">
-                        {aiRecommendations}
-                      </div>
-                      <button
-                        onClick={() => setAiRecommendations("")}
-                        className="mt-2 text-xs text-purple-300 hover:text-purple-200 underline"
-                      >
-                        {language === 'fr' ? '✕ Masquer' : '✕ Hide'}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* Location error */}
               {locationError && (
@@ -618,6 +735,7 @@ export default function NavigatorPage() {
                 userLocation={userLocation}
                 selectedService={selectedService}
                 onServiceClick={setSelectedService}
+                onMapClick={handleMapClick}
                 filters={filters}
                 language={language}
                 mapCenter={mapCenter}
@@ -631,6 +749,7 @@ export default function NavigatorPage() {
                     language={language}
                     onClose={() => setSelectedService(null)}
                     userLocation={userLocation}
+                    isLoading={isLoading}
                   />
                 </div>
               )}
@@ -638,12 +757,13 @@ export default function NavigatorPage() {
               {/* Mobile details panel (full screen) */}
               {selectedService && (
                 <div className="absolute inset-0 bg-black/50 z-20 lg:hidden">
-                  <div className="absolute bottom-0 left-0 right-0 max-h-[80vh]">
+                  <div className="absolute bottom-0 left-0 right-0 h-[85vh] flex flex-col">
                     <ServiceDetailsPanel
                       service={selectedService}
                       language={language}
                       onClose={() => setSelectedService(null)}
                       userLocation={userLocation}
+                      isLoading={isLoading}
                     />
                   </div>
                 </div>
@@ -656,8 +776,8 @@ export default function NavigatorPage() {
                 </div>
               )}
               
-              {/* Empty state - no services with coordinates */}
-              {!isLoading && filteredServices.length > 0 && filteredServices.every(s => !s.lat || !s.lng) && (
+              {/* Empty state - only show if we have services but none have coordinates to display */}
+              {!isLoading && !loadingCommunityRatings && showEmptyState && mergedServices.length > 0 && mergedServices.filter(s => s.lat && s.lng).length === 0 && (
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl px-6 py-4 text-center max-w-md z-10">
                   <div className="text-4xl mb-2">📍</div>
                   <h3 className="font-semibold text-zinc-900 mb-2">
@@ -702,7 +822,13 @@ export default function NavigatorPage() {
                   </div>
                 )}
 
-                {filteredServices.map((service) => (
+                {filteredServices.map((service) => {
+                  const communityRating = communityRatings.get(service.id);
+                  const avgCommunityRating = communityRating
+                    ? (communityRating.avg_friendliness + communityRating.avg_privacy + communityRating.avg_wait_time) / 3
+                    : null;
+                  
+                  return (
                   <div
                     key={service.id}
                     className="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-emerald-500 transition-colors"
@@ -735,6 +861,16 @@ export default function NavigatorPage() {
                           {service.realTimeStatus?.rating && (
                             <span className="px-2 py-1 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-400">
                               ⭐ {service.realTimeStatus.rating.toFixed(1)}
+                            </span>
+                          )}
+                          {avgCommunityRating && (
+                            <span className="px-2 py-1 rounded-full text-xs font-semibold bg-purple-500/20 text-purple-400">
+                              💜 {avgCommunityRating.toFixed(1)} ({communityRating!.total_ratings})
+                            </span>
+                          )}
+                          {communityRating && communityRating.judgement_free_percentage >= 75 && (
+                            <span className="px-2 py-1 rounded-full text-xs font-semibold bg-purple-500/20 text-purple-400">
+                              🤝 {language === 'fr' ? 'Sans jugement' : 'Judgement-free'}
                             </span>
                           )}
                           {service.realTimeStatus?.distance && (
@@ -776,7 +912,8 @@ export default function NavigatorPage() {
                       </div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

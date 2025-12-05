@@ -1,14 +1,20 @@
 # Sans-Capote: Voice-First AI Sexual Health Guide
 
+> **About the Name:** "Sans-Capote" is French for "without a sheath/cover." While this phrase has literal connotations, we've chosen it as a metaphor for **removing the barriers of stigma and silence** surrounding sexual health education. Just as transparency requires removing covers, our mission is to create open, judgment-free conversations about topics that are often hidden or taboo. This name reflects our commitment to addressing sexual health with directness, honesty, and compassion.
+> 
+> **Note for Reviewers:** We acknowledge the dual meaning and welcome feedback on whether a different name (e.g., "Open Health," "Clear Talk," "Sans Tabou") would better serve our mission while maintaining cultural sensitivity.
+
 **A stigma-free, voice-driven AI companion for sexual health and HIV prevention in African contexts.**
 
-Combining **Google Gemini** for intelligent conversation and **ElevenLabs** for natural voice output, Sans-Capote provides accessible, private, and culturally-sensitive health guidance via voice or text—even offline.
+Combining **Google Gemini** for intelligent conversation, **ElevenLabs** for natural voice output, and **Supabase** for community ratings, Sans-Capote provides accessible, private, and culturally-sensitive health guidance via voice or text—even offline.
 
 🏆 **Hackathon Challenge:** ElevenLabs Challenge (Google Cloud Partner Catalyst)
 - ✨ ElevenLabs TTS with emotional voice adaptation & caching
-- 🤖 Google Gemini AI for conversational responses
+- 🤖 Google Gemini AI for conversational responses & service discovery
 - 🎤 Voice-first UX with live captions & keyboard navigation
-- 🔒 Privacy-first (no account needed, no conversation storage)
+- 🗺️ Interactive map with real-time service data
+- 💬 Community ratings & comments powered by Supabase
+- 🔒 Privacy-first (no account needed, anonymous contributions)
 - ♿ WCAG AA accessible with screen reader support
 - 📊 Production-grade monitoring & error tracking
 
@@ -32,7 +38,17 @@ cp .env.example .env.local
 # ELEVENLABS_API_KEY=... (from https://elevenlabs.io/app/api-keys)
 # NEXT_PUBLIC_ELEVENLABS_VOICE_EN=... (from https://elevenlabs.io/app/voice-library)
 # NEXT_PUBLIC_ELEVENLABS_VOICE_FR=... (optional, for French)
+# NEXT_PUBLIC_GOOGLE_PLACES_API_KEY=... (for real-time service data)
+# NEXT_PUBLIC_MAPBOX_TOKEN=... (for interactive maps)
+# NEXT_PUBLIC_SUPABASE_URL=... (for community ratings)
+# NEXT_PUBLIC_SUPABASE_ANON_KEY=... (from https://app.supabase.com)
 ```
+
+**Supabase Setup (Optional - for community ratings):**
+1. Create a Supabase project at https://supabase.com
+2. Run the SQL script in `supabase-setup.sql` via the SQL Editor
+3. Add your `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` to `.env.local`
+4. Community ratings will now persist across sessions!
 
 ### 3. Run
 ```bash
@@ -56,6 +72,15 @@ Open [http://localhost:3000](http://localhost:3000) and navigate to **Crisis** o
 4. Watch live captions appear as the system speaks
 5. Receive personalized PEP/PrEP guidance with local resources
 
+### Service Navigator (Map Mode)
+1. Navigate to `/navigator` page
+2. Select your country from the dropdown (Nigeria, South Africa, Kenya, etc.)
+3. Use filters to find services (PrEP, PEP, HIV Testing, STI Testing)
+4. Click **🔍 Discover** to find AI-powered service recommendations
+5. Click on map markers to view service details
+6. **Rate services:** Submit community ratings with comments (stored in Supabase)
+7. View aggregate ratings and read other users' experiences
+
 ### General Q&A (Guide Mode)
 1. Navigate to `/guide` page
 2. Click the **Mic** button, speak a question (e.g., "What is PrEP?")
@@ -68,6 +93,14 @@ Open [http://localhost:3000](http://localhost:3000) and navigate to **Crisis** o
 - "I had unprotected sex, what should I do?"
 - "How do I talk to someone about STI testing?"
 - "I'm worried about stigma at the clinic"
+- "Are there judgement-free services near me?"
+
+### Community Features to Test
+- Submit a rating for any service (friendliness, privacy, wait time)
+- Mark services as "judgement-free"
+- Add comments about your experience
+- View aggregate community ratings (4.2/5, 87% judgement-free, etc.)
+- Filter services by minimum rating threshold
 
 ---
 
@@ -103,15 +136,36 @@ Open [http://localhost:3000](http://localhost:3000) and navigate to **Crisis** o
 - ✅ **Curated Knowledge:** Informed by local resources, services, and best practices
 - ✅ **Bite-Sized Answers:** Short preview + "Read full" option for longer content
 - ✅ **Crisis Detection:** Identifies urgent situations and provides immediate guidance
+- ✅ **AI Service Discovery:** Discovers new health services using geographic search
+
+### 🗺️ Interactive Service Navigator
+- ✅ **Real-Time Map:** Mapbox-powered interactive map with service markers
+- ✅ **Google Places Integration:** Live data enrichment (hours, ratings, phone numbers)
+- ✅ **Smart Filters:** Filter by service type, open hours, ratings, judgement-free status
+- ✅ **AI Discovery:** Gemini-powered discovery of new services beyond the directory
+- ✅ **Country Support:** Nigeria, South Africa, Kenya, Uganda, Rwanda, Ghana
+- ✅ **Coordinate Detection:** Automatic country detection from map clicks
+
+### 💬 Community Ratings (Supabase)
+- ✅ **Anonymous Submissions:** Rate services without creating an account
+- ✅ **Multi-Dimensional Ratings:** Friendliness, Privacy, Wait Time (1-5 stars each)
+- ✅ **Judgement-Free Flag:** Community-driven safety indicator
+- ✅ **Comments System:** Share experiences with timestamps
+- ✅ **Aggregate Display:** Average ratings and percentages across all reviews
+- ✅ **Filter Integration:** Filter services by minimum community rating
+- ✅ **PostgreSQL + RLS:** Secure data storage with Row Level Security
+- ✅ **Immutable Records:** Ratings cannot be edited or deleted (integrity)
 
 ### 🔒 Safety & Privacy
 - ✅ **No Login Required:** No accounts, no tracking, no data storage
+- ✅ **Anonymous Contributions:** Submit ratings without identification
 - ✅ **Rate Limiting:** 60 requests/min (conversation), 100 requests/min (TTS)
 - ✅ **Input Sanitization:** XSS prevention and content security
 - ✅ **PII Protection:** Automatic phone/email redaction in analytics
 - ✅ **Security Headers:** CSP, X-Frame-Options, X-Content-Type-Options
 - ✅ **Safety Disclaimers:** Clear educational (not medical advice) messaging
 - ✅ **Local Services:** Recommends real clinics and NGOs in user's country
+- ✅ **Supabase RLS:** Row Level Security ensures data integrity
 
 ### ♿ Accessibility (WCAG AA Compliant)
 - ✅ **Keyboard Navigation:** Full app control without mouse
@@ -137,32 +191,43 @@ sans-capote/
 ├── src/
 │   ├── app/
 │   │   ├── guide/          # AI Chat with voice input/output
-│   │   ├── navigator/      # Country-aware PrEP/PEP guidance
+│   │   ├── navigator/      # Interactive service map + AI discovery
 │   │   ├── resources/      # Educational hub (HIV, STIs, consent)
 │   │   ├── crisis/         # Urgent exposure voice assessment
 │   │   ├── api/
 │   │   │   ├── conversation/  # Gemini + rate limiting
 │   │   │   ├── tts/           # ElevenLabs + caching
 │   │   │   ├── analytics/     # Telemetry endpoint
+│   │   │   ├── ai-discovery/  # Gemini service discovery
+│   │   │   ├── places/        # Google Places enrichment
 │   │   │   └── voice-out/     # Legacy TTS endpoint
 │   │   ├── settings-provider.tsx
 │   │   └── layout.tsx      # ErrorBoundary wrapper
 │   ├── components/
-│   │   ├── CrisisVoiceAgent.tsx  # Voice assessment flow
-│   │   └── LiveCaption.tsx       # Accessibility captions
+│   │   ├── CrisisVoiceAgent.tsx     # Voice assessment flow
+│   │   ├── LiveCaption.tsx          # Accessibility captions
+│   │   ├── InteractiveServiceMap.tsx # Mapbox map component
+│   │   └── ServiceDetailsPanel.tsx   # Service details + ratings
 │   ├── lib/
-│   │   ├── telemetry.ts    # Analytics & error tracking
-│   │   ├── tts-service.ts  # Enhanced TTS with caching
-│   │   └── ErrorBoundary.tsx  # Global error handler
+│   │   ├── telemetry.ts         # Analytics & error tracking
+│   │   ├── tts-service.ts       # Enhanced TTS with caching
+│   │   ├── supabase.ts          # Community ratings API
+│   │   ├── ai-service-discovery.ts # Gemini discovery logic
+│   │   ├── places-api.ts        # Google Places integration
+│   │   └── ErrorBoundary.tsx    # Global error handler
 │   ├── hooks/
-│   │   └── useKeyboardNavigation.ts
+│   │   ├── useKeyboardNavigation.ts
+│   │   └── usePlacesEnrichment.ts
 │   ├── middleware/
 │   │   └── security.ts     # Rate limiting & sanitization
 │   ├── data/               # Curated offline content
+│   │   ├── servicesDirectory.ts  # 40+ verified services
+│   │   └── countryGuides.ts      # Country-specific info
 │   └── i18n/
 │       └── strings.ts      # Bilingual UI strings
 ├── public/
 │   └── sw.js              # Service worker for PWA
+├── supabase-setup.sql     # Database schema for ratings
 ├── Dockerfile             # Production containerization
 ├── cloudbuild.yaml        # Google Cloud Build CI/CD
 └── package.json
@@ -173,6 +238,8 @@ sans-capote/
 - **UI:** React 19, TailwindCSS 4
 - **AI:** Google Generative AI (Gemini 2.5 Flash)
 - **Voice:** ElevenLabs TTS + Web Speech API
+- **Database:** Supabase (PostgreSQL + Row Level Security)
+- **Maps:** Mapbox GL JS + Google Places API
 - **Monitoring:** Custom telemetry + Google Analytics 4
 - **Security:** Rate limiting, CSP headers, input sanitization
 - **Deployment:** Vercel (recommended) or Docker/Cloud Run
@@ -198,7 +265,14 @@ npm run start  # Production server on port 3000
 ```bash
 npm install -g vercel
 vercel --prod
-# Add environment variables in Vercel dashboard
+# Add environment variables in Vercel dashboard:
+# - GEMINI_API_KEY
+# - ELEVENLABS_API_KEY
+# - NEXT_PUBLIC_ELEVENLABS_VOICE_EN
+# - NEXT_PUBLIC_GOOGLE_PLACES_API_KEY
+# - NEXT_PUBLIC_MAPBOX_TOKEN
+# - NEXT_PUBLIC_SUPABASE_URL
+# - NEXT_PUBLIC_SUPABASE_ANON_KEY
 ```
 
 ### Deploy with Docker
@@ -225,10 +299,15 @@ The app tracks comprehensive metrics for production monitoring:
 - `flow_completed` - Full assessment finished
 - `flow_abandoned` - User exits before completion
 - `referral_provided` - Local services recommended
+- `service_rated` - User submits community rating
+- `ai_discovery_started` / `ai_discovery_completed` - Service discovery events
 
 ### Performance Metrics
 - **Conversation API:** Response times, message counts, language/country
 - **TTS API:** Latency, cache hit rate, audio file sizes
+- **Community Ratings:** Submission success rate, aggregate calculations
+- **Map Performance:** Service load times, coordinate enrichment latency
+- **AI Discovery:** Services found per query, deduplication rate
 - **Error Tracking:** Failed API calls, mic permission denials, timeout events
 - **User Engagement:** Questions asked, top topics, voice vs. text preferences
 
@@ -245,10 +324,10 @@ See `src/lib/telemetry.ts` and `src/app/api/analytics/route.ts` for implementati
 
 | Criterion | Implementation | Evidence |
 |-----------|----------------|----------|
-| **Technological Excellence** | Advanced TTS caching, retry logic, emotional voice adaptation, production error handling | `src/lib/tts-service.ts`, `src/lib/ErrorBoundary.tsx` |
-| **Design & UX** | WCAG AA accessible, live captions, keyboard nav, mobile-optimized dark theme | `src/components/LiveCaption.tsx`, `src/hooks/useKeyboardNavigation.ts` |
-| **Potential Impact** | Addresses stigma & access barriers in sub-Saharan Africa; offline-capable, privacy-first | Crisis mode + local service directory |
-| **Quality of Idea** | Voice-driven health education for low-literacy users; culturally-sensitive, bilingual | EN/FR support, country-specific guidance |
+| **Technological Excellence** | Advanced TTS caching, retry logic, emotional voice adaptation, Supabase integration, AI service discovery, production error handling | `src/lib/tts-service.ts`, `src/lib/supabase.ts`, `src/lib/ai-service-discovery.ts` |
+| **Design & UX** | WCAG AA accessible, live captions, keyboard nav, interactive maps, community ratings UI, mobile-optimized dark theme | `src/components/InteractiveServiceMap.tsx`, `src/components/ServiceDetailsPanel.tsx` |
+| **Potential Impact** | Addresses stigma & access barriers in sub-Saharan Africa; offline-capable, privacy-first, community-driven ratings | Crisis mode + 40+ verified services + anonymous ratings |
+| **Quality of Idea** | Voice-driven health education for low-literacy users; culturally-sensitive, bilingual, AI-powered discovery | EN/FR support, 6 countries, Gemini-powered service finding |
 | **ElevenLabs Integration** | Emotional voice settings, phrase preloading, smart caching, graceful degradation | 70% reduction in API calls, 99.9% reliability |
 
 ---
@@ -275,8 +354,32 @@ This project is licensed under the **MIT License** - see [LICENSE](LICENSE) file
 
 - **Google Cloud** for Gemini API and cloud infrastructure
 - **ElevenLabs** for natural voice synthesis and hackathon sponsorship
+- **Supabase** for open-source database infrastructure
+- **Mapbox** for interactive mapping capabilities
 - **Global Fund / UNAIDS** for HIV prevention best practices
 - Community health workers in African contexts for domain expertise
+
+---
+
+## 💡 Name Considerations
+
+We've received feedback about the project name "Sans-Capote" and want to address it transparently:
+
+**Current Name:** "Sans-Capote" (French: "without a sheath/cover")
+- ✅ **Metaphor:** Represents removing barriers/stigma around taboo topics
+- ✅ **Cultural Relevance:** French is widely spoken in African contexts
+- ⚠️ **Dual Meaning:** Also has literal connotations related to sexual health
+
+**Alternative Names Under Consideration:**
+1. **"Sans Tabou"** - French for "without taboo" (clearer metaphor)
+2. **"Open Health"** - Direct English equivalent
+3. **"Clear Talk"** - Emphasizes honest communication
+4. **"Speak Freely"** - Focuses on voice/conversation aspect
+5. **"Health Bridge"** - Connects people to resources
+
+**Our Stance:** We're committed to cultural sensitivity and welcome community feedback. The current name was chosen to spark conversation, but we recognize that clarity and appropriateness matter more than cleverness. If the name causes more confusion than connection, we're open to change.
+
+**Feedback Welcome:** Judges and reviewers, please let us know if you feel a different name would better serve our mission.
 
 ---
 

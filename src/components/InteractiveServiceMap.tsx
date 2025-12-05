@@ -12,6 +12,7 @@ interface InteractiveServiceMapProps {
   userLocation?: { lat: number; lng: number } | null;
   selectedService?: EnrichedServiceEntry | null;
   onServiceClick: (service: EnrichedServiceEntry) => void;
+  onMapClick?: (coordinates: { lat: number; lng: number }) => void;
   filters: {
     serviceTypes: string[];
     openNow: boolean;
@@ -26,6 +27,7 @@ export default function InteractiveServiceMap({
   userLocation,
   selectedService,
   onServiceClick,
+  onMapClick,
   filters,
   language,
   mapCenter,
@@ -53,7 +55,7 @@ export default function InteractiveServiceMap({
     }
 
     try {
-      const initialCenter: [number, number] = mapCenter
+      const initialCenter: [number, number] = mapCenter && mapCenter.lng !== undefined && mapCenter.lat !== undefined
         ? [mapCenter.lng, mapCenter.lat]
         : userLocation 
         ? [userLocation.lng, userLocation.lat]
@@ -93,6 +95,14 @@ export default function InteractiveServiceMap({
         }),
         'top-right'
       );
+
+      // Add click handler for map taps
+      map.current.on('click', (e) => {
+        if (onMapClick) {
+          console.log('🗺️ Map clicked at:', e.lngLat.lat, e.lngLat.lng);
+          onMapClick({ lat: e.lngLat.lat, lng: e.lngLat.lng });
+        }
+      });
     } catch (error) {
       console.error('Failed to initialize map:', error);
       setTimeout(() => {
@@ -112,25 +122,37 @@ export default function InteractiveServiceMap({
 
   // Update map center when mapCenter prop changes (country change)
   useEffect(() => {
-    if (!map.current || !mapCenter) return;
+    if (!map.current) {
+      console.warn('⚠️ Map not initialized yet');
+      return;
+    }
+    
+    if (!mapCenter || mapCenter.lng === undefined || mapCenter.lat === undefined) {
+      console.warn('⚠️ Invalid mapCenter:', mapCenter);
+      return;
+    }
     
     console.log('📍 Recentering map to:', mapCenter);
     
-    // Force immediate update for debugging
-    map.current.setCenter([mapCenter.lng, mapCenter.lat]);
-    map.current.setZoom(mapCenter.zoom);
-    
-    // Then animate
-    setTimeout(() => {
-      if (map.current) {
-        map.current.flyTo({
-          center: [mapCenter.lng, mapCenter.lat],
-          zoom: mapCenter.zoom,
-          duration: 1500,
-          essential: true,
-        });
-      }
-    }, 100);
+    try {
+      // Force immediate update for debugging
+      map.current.setCenter([mapCenter.lng, mapCenter.lat]);
+      map.current.setZoom(mapCenter.zoom);
+      
+      // Then animate
+      setTimeout(() => {
+        if (map.current) {
+          map.current.flyTo({
+            center: [mapCenter.lng, mapCenter.lat],
+            zoom: mapCenter.zoom,
+            duration: 1500,
+            essential: true,
+          });
+        }
+      }, 100);
+    } catch (error) {
+      console.error('❌ Error recentering map:', error);
+    }
   }, [mapCenter]);
 
   // Update user location marker
@@ -333,22 +355,28 @@ export default function InteractiveServiceMap({
     // Fit bounds to show all markers
     if (filteredServices.length > 0 && map.current) {
       const bounds = new mapboxgl.LngLatBounds();
+      let hasValidBounds = false;
       
       if (userLocation) {
         bounds.extend([userLocation.lng, userLocation.lat]);
+        hasValidBounds = true;
       }
 
       filteredServices.forEach((service) => {
         if (service.lat && service.lng) {
           bounds.extend([service.lng, service.lat]);
+          hasValidBounds = true;
         }
       });
 
-      map.current.fitBounds(bounds, {
-        padding: { top: 50, bottom: 50, left: 50, right: 50 },
-        maxZoom: 14,
-        duration: 1000,
-      });
+      // Only fit bounds if we have at least one valid coordinate
+      if (hasValidBounds) {
+        map.current.fitBounds(bounds, {
+          padding: { top: 50, bottom: 50, left: 50, right: 50 },
+          maxZoom: 14,
+          duration: 1000,
+        });
+      }
     }
   }, [filteredServices, selectedService, language, userLocation, onServiceClick]);
 
