@@ -153,13 +153,8 @@ async function tryGeminiAnswer(
         .join("\n")
     : "";
 
-  const lastUserMessage = [...messages]
-    .slice(-20) // cap conversation length for safety
-    .reverse()
-    .find((m) => m.role === "user");
-
   // Truncate very long user content to avoid sending excessive context to Gemini
-  const rawUserContent = lastUserMessage?.content ?? "";
+  const rawUserContent = userContent;
   const truncatedUserContent =
     rawUserContent.length > 2000
       ? `${rawUserContent.slice(0, 2000)}…`

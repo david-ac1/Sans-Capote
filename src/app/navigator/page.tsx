@@ -1,512 +1,801 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useSettings } from "../settings-provider";
 import { servicesDirectory } from "../../data/servicesDirectory";
-import { countryGuides } from "../../data/countryGuides";
+import type { ServiceEntry } from "../../data/servicesDirectory";
 import { strings, t } from "../../i18n/strings";
-import { logConversationMetric } from "../../lib/metrics";
-import MapContainer from "../../components/MapContainer";
 import { usePlacesEnrichment } from "../../hooks/usePlacesEnrichment";
-import { ServiceStatusBadge } from "../../components/ServiceStatusBadge";
+import InteractiveServiceMap from "../../components/InteractiveServiceMap";
+import ServiceDetailsPanel from "../../components/ServiceDetailsPanel";
+import type { EnrichedServiceEntry } from "@/lib/places-api";
+import { 
+  discoverServices, 
+  deduplicateServices,
+  type AIDiscoveredService 
+} from "@/lib/ai-service-discovery";
 
-const COUNTRY_CENTERS: Record<string, { lat: number; lng: number }> = {
-  NG: { lat: 6.5244, lng: 3.3792 },  // Lagos
-  GH: { lat: 5.6037, lng: -0.1870 }, // Accra
-  UG: { lat: 0.3136, lng: 32.5832 }, // Kampala
-  KE: { lat: -1.2832, lng: 36.8172 }, // Nairobi
-  ZA: { lat: -33.9249, lng: 18.4241 }, // Cape Town
-  RW: { lat: -1.9536, lng: 29.8739 }, // Kigali
+// Country center coordinates for map positioning
+const COUNTRY_CENTERS: Record<string, { lat: number; lng: number; zoom: number }> = {
+  NG: { lat: 9.0820, lng: 8.6753, zoom: 6 }, // Nigeria (Abuja)
+  KE: { lat: -1.2864, lng: 36.8172, zoom: 7 }, // Kenya (Nairobi)
+  UG: { lat: 0.3476, lng: 32.5825, zoom: 7 }, // Uganda (Kampala)
+  ZA: { lat: -30.5595, lng: 22.9375, zoom: 6 }, // South Africa (Cape Town)
+  RW: { lat: -1.9403, lng: 29.8739, zoom: 9 }, // Rwanda (Kigali)
+  GH: { lat: 5.6037, lng: -0.1870, zoom: 7 }, // Ghana (Accra)
 };
 
-type ViewMode = "triage" | "results";
-
-interface GeolocationCoords {
-  latitude: number;
-  longitude: number;
-}
-
 export default function NavigatorPage() {
-  const { language, countryCode } = useSettings();
+  const { language, countryCode, setCountryCode } = useSettings();
   
-
-  const [viewMode, setViewMode] = useState<ViewMode>("triage");
-  const [timeSinceExposure, setTimeSinceExposure] = useState<number | null>(null);
-  const [exposureType, setExposureType] = useState<string>("penetrative");
-  const [condomUsed, setCondomUsed] = useState<boolean>(false);
-  const [userLocation, setUserLocation] = useState<GeolocationCoords | null>(null);
-  const [geoRequested, setGeoRequested] = useState(false);
-  const [mapActive, setMapActive] = useState(false);
-  const [isOnline, setIsOnline] = useState(true);
-  const [filterTab, setFilterTab] = useState<"all" | "pep" | "prep" | "lgbtqia">("all");
-  const [formError, setFormError] = useState<string | null>(null);
-
-  const guide = useMemo(
-    () => countryGuides.find((c) => c.code === countryCode) ?? countryGuides[0],
-    [countryCode]
-  );
-
-  // Filter clinics by country
-  const countryClinics = useMemo(
-    () => servicesDirectory.filter((s) => s.country === countryCode),
-    [countryCode]
-  );
-
-  // Compute distance from user to clinic (Haversine formula)
-  const computeDistance = (
-    userLat: number,
-    userLng: number,
-    clinicLat: number,
-    clinicLng: number
-  ): number => {
-    const R = 6371; // Earth radius in km
-    const dLat = ((clinicLat - userLat) * Math.PI) / 180;
-    const dLng = ((clinicLng - userLng) * Math.PI) / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos((userLat * Math.PI) / 180) *
-        Math.cos((clinicLat * Math.PI) / 180) *
-        Math.sin(dLng / 2) *
-        Math.sin(dLng / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
-
-  // Sort clinics by distance if user location available
-  const sortedClinics = useMemo(() => {
-    if (!userLocation) return countryClinics;
-    return countryClinics
-      .map((clinic) => ({
-        clinic,
-        distance: clinic.lat && clinic.lng
-          ? computeDistance(userLocation.latitude, userLocation.longitude, clinic.lat, clinic.lng)
-          : Infinity,
-      }))
-      .sort((a, b) => a.distance - b.distance)
-      .map(({ clinic }) => clinic);
-  }, [userLocation, countryClinics]);
-
-  // Filter clinics based on selected tab
-  const filteredClinics = useMemo(() => {
-    switch (filterTab) {
-      case "pep":
-        return sortedClinics.filter((c) => c.pepAvailability && c.pepAvailability !== "unknown");
-      case "prep":
-        return sortedClinics.filter((c) => c.prepAvailability && c.prepAvailability !== "unknown");
-      case "lgbtqia":
-        return sortedClinics.filter((c) => c.lgbtqiaFriendly && c.lgbtqiaFriendly > 0);
-      default:
-        return sortedClinics;
+  // View state
+  const [showMap, setShowMap] = useState(true);
+  const [selectedService, setSelectedService] = useState<EnrichedServiceEntry | null>(null);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [aiRecommendations, setAiRecommendations] = useState<string>("");
+  const [loadingRecommendations, setLoadingRecommendations] = useState(false);
+  
+  // Filter state - Initialize from countryCode but maintain independent state
+  const [selectedCountry, setSelectedCountry] = useState<string>(() => {
+    // Check URL params first, then settings, then default
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('country') || countryCode || "NG";
     }
-  }, [sortedClinics, filterTab]);
+    return countryCode || "NG";
+  });
+  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number; zoom: number }>(() => 
+    COUNTRY_CENTERS[selectedCountry] || COUNTRY_CENTERS.NG
+  );
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filters, setFilters] = useState({
+    serviceTypes: [] as string[],
+    openNow: false,
+    rating: 0,
+  });
+  
+  // AI discovery state
+  const [aiServices, setAiServices] = useState<AIDiscoveredService[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [showAiServices, setShowAiServices] = useState(false);
 
-  // Enrich clinics with real-time Google Places data
-  const { services: enrichedClinics, isLoading: placesLoading } = usePlacesEnrichment(
-    filteredClinics,
+  // Filter services by country
+  const countryServices = useMemo(() => {
+    return servicesDirectory.filter((s) => s.country === selectedCountry);
+  }, [selectedCountry]);
+  
+  // Convert AI services to ServiceEntry format for merging
+  const aiServicesAsEntries = useMemo((): ServiceEntry[] => {
+    if (!showAiServices || aiServices.length === 0) return [];
+    
+    return aiServices.map((aiService, index) => ({
+      id: `ai_${selectedCountry}_${index}`,
+      country: selectedCountry as import('@/data/countryGuides').CountryCode,
+      city: aiService.city || 'Unknown',
+      name: aiService.name,
+      type: 'ngo' as const, // Default type for AI-discovered
+      services: {
+        hivTesting: aiService.metadata.hivTestingAvailable,
+        pep: aiService.metadata.pepAvailable,
+        prep: aiService.metadata.prepAvailable,
+        sti: aiService.metadata.stiPanelAvailable,
+        mentalHealth: aiService.metadata.peerSupportPresent,
+      },
+      notesEn: aiService.metadata.reasoning || 'AI-discovered service',
+      notesFr: aiService.metadata.reasoning || 'Service découvert par IA',
+      lat: aiService.lat,
+      lng: aiService.lng,
+      phone: aiService.phone,
+      website: aiService.website,
+      hours: aiService.hours,
+      lgbtqiaFriendly: aiService.metadata.lgbtFriendlyScore,
+      aiMetadata: aiService.metadata,
+    }));
+  }, [aiServices, showAiServices, selectedCountry]);
+  
+  // Merge directory + AI services
+  const mergedServices = useMemo(() => {
+    return [...countryServices, ...aiServicesAsEntries];
+  }, [countryServices, aiServicesAsEntries]);
+
+  // Enrich with Google Places data
+  const { services: enrichedServices, isLoading } = usePlacesEnrichment(
+    mergedServices,
     {
-      enabled: isOnline && mapActive,
-      userLocation: userLocation ? { lat: userLocation.latitude, lng: userLocation.longitude } : null,
-      autoSort: true, // Sort by open status + distance
+      enabled: true,
+      userLocation,
+      autoSort: true,
     }
   );
 
-  // Determine PEP urgency
-  const pepStatus = useMemo(() => {
-    if (timeSinceExposure === null) return null;
-    if (timeSinceExposure <= 72) {
-      return timeSinceExposure <= 2 ? "urgent" : "window";
+  // Apply search and filters
+  const filteredServices = useMemo(() => {
+    let results = enrichedServices;
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      results = results.filter((service) => {
+        const searchText = `${service.name} ${service.city} ${service.notesEn} ${service.notesFr}`.toLowerCase();
+        return searchText.includes(query);
+      });
     }
-    return "closed";
-  }, [timeSinceExposure]);
 
-  // Map is handled by MapContainer component (keeps logic isolated)
+    // Service type filter
+    if (filters.serviceTypes.length > 0) {
+      results = results.filter((service) => {
+        const notes = (language === 'fr' ? service.notesFr : service.notesEn).toLowerCase();
+        return filters.serviceTypes.some((type) => {
+          // Map service types to search terms
+          const searchTerms: Record<string, string[]> = {
+            prep: ['prep', 'pre-exposure', 'prophylaxis', 'prevention'],
+            pep: ['pep', 'post-exposure', 'emergency'],
+            testing: ['test', 'testing', 'dépistage', 'screening', 'hiv test'],
+            treatment: ['treatment', 'traitement', 'art', 'antiretroviral', 'arv'],
+            counseling: ['counsel', 'conseil', 'support', 'therapy', 'psycho'],
+            lgbtqia: ['lgbt', 'lgbtq', 'gay', 'lesbian', 'trans', 'queer', 'friendly', 'inclusive'],
+          };
+          const terms = searchTerms[type] || [type];
+          return terms.some(term => notes.includes(term));
+        });
+      });
+    }
 
-  // Request geolocation
-  const requestGeolocation = () => {
-    setGeoRequested(true);
-    if (typeof window === "undefined" || !navigator.geolocation) {
-      console.error("Geolocation not available");
+    // Open now filter
+    if (filters.openNow) {
+      results = results.filter((service) => {
+        return service.realTimeStatus?.isOpen === true;
+      });
+    }
+
+    // Rating filter
+    if (filters.rating > 0) {
+      results = results.filter((service) => {
+        const rating = service.realTimeStatus?.rating || 0;
+        return rating >= filters.rating;
+      });
+    }
+
+    return results;
+  }, [enrichedServices, searchQuery, filters, language]);
+
+  // Request user location
+  const requestLocation = () => {
+    setLocationError(null);
+    
+    if (!navigator.geolocation) {
+      setLocationError(
+        language === 'fr'
+          ? "La géolocalisation n'est pas supportée par votre navigateur"
+          : "Geolocation is not supported by your browser"
+      );
       return;
     }
+
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setUserLocation({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
         });
       },
       (error) => {
         console.error("Geolocation error:", error);
+        setLocationError(
+          language === 'fr'
+            ? "Impossible d'obtenir votre position. Veuillez activer la géolocalisation."
+            : "Unable to get your location. Please enable location services."
+        );
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000, // Cache for 5 minutes
       }
     );
   };
 
-  // Handle form submission
-  const handleTriageSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (timeSinceExposure === null) {
-      setFormError(language === "fr" ? "Veuillez indiquer le nombre d'heures depuis l'exposition." : "Please enter hours since exposure.");
+  // Request location on mount
+  useEffect(() => {
+    if (userLocation || locationError) return;
+    
+    // Use timeout to avoid React's setState-in-effect warning
+    const timer = setTimeout(() => {
+      if (!navigator.geolocation) {
+        setLocationError(
+          language === 'fr'
+            ? "La géolocalisation n'est pas supportée par votre navigateur"
+            : "Geolocation is not supported by your browser"
+        );
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+        },
+        (error) => {
+          console.error("Geolocation error:", error);
+          setLocationError(
+            language === 'fr'
+              ? "Impossible d'obtenir votre position. Veuillez activer la géolocalisation."
+              : "Unable to get your location. Please enable location services."
+          );
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 300000, // Cache for 5 minutes
+        }
+      );
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sync with settings countryCode changes
+  useEffect(() => {
+    if (countryCode && countryCode !== selectedCountry) {
+      setSelectedCountry(countryCode);
+      setMapCenter(COUNTRY_CENTERS[countryCode] || COUNTRY_CENTERS.NG);
+    }
+  }, [countryCode, selectedCountry]);
+
+  // Update map center when country changes
+  useEffect(() => {
+    const center = COUNTRY_CENTERS[selectedCountry] || COUNTRY_CENTERS.NG;
+    setMapCenter(center);
+  }, [selectedCountry]);
+
+  // Get AI recommendations when filters change
+  const getAiRecommendations = async () => {
+    if (filters.serviceTypes.length === 0 && !searchQuery) {
+      setAiRecommendations(
+        language === 'fr'
+          ? '💡 Sélectionnez des filtres ou recherchez pour obtenir des recommandations IA'
+          : '💡 Select filters or search to get AI recommendations'
+      );
       return;
     }
+    
+    setLoadingRecommendations(true);
+    try {
+      // Build context from filtered services
+      const serviceList = filteredServices.slice(0, 10).map(s => 
+        `${s.name} in ${s.city} (${s.phone || 'no phone'})`
+      ).join('; ');
 
-    setFormError(null);
-
-    // Log navigator event
-    logConversationMetric({
-      timestamp: new Date().toISOString(),
-      type: "conversation_request",
-      durationMs: 0,
-      language,
-      countryCode,
-      mode: "navigator_pep",
-      requestLength: 0,
-      responseLength: 0,
-      modelUsed: "rule_based",
-    });
-
-    setViewMode("results");
+      const prompt = language === 'fr'
+        ? `Contexte: Services disponibles en ${selectedCountry}: ${serviceList}. Utilisateur cherche: ${filters.serviceTypes.join(', ')}${searchQuery ? ` "${searchQuery}"` : ''}. Recommande les 2-3 meilleurs services avec raisons spécifiques (max 100 mots). Formate: **Service**: raison`
+        : `Context: Available services in ${selectedCountry}: ${serviceList}. User looking for: ${filters.serviceTypes.join(', ')}${searchQuery ? ` "${searchQuery}"` : ''}. Recommend top 2-3 services with specific reasons (max 100 words). Format: **Service**: reason`;
+      
+      const response = await fetch('/api/conversation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: prompt }],
+          language,
+          countryCode: selectedCountry,
+          mode: 'navigator',
+        }),
+      });
+      
+      const data = await response.json();
+      setAiRecommendations(data.answer || 
+        (language === 'fr' 
+          ? 'Aucune recommandation disponible pour cette recherche.'
+          : 'No recommendations available for this search.'));
+    } catch (error) {
+      console.error('Failed to get AI recommendations:', error);
+      setAiRecommendations(
+        language === 'fr'
+          ? '❌ Erreur lors du chargement des recommandations'
+          : '❌ Error loading recommendations'
+      );
+    } finally {
+      setLoadingRecommendations(false);
+    }
+  };
+  
+  // AI service discovery (hybrid approach)
+  const discoverAiServices = async () => {
+    if (aiLoading) return;
+    
+    setAiLoading(true);
+    setAiRecommendations(""); // Clear text recommendations
+    
+    try {
+      console.log('🔍 Discovering AI services for', selectedCountry);
+      
+      // Build filter criteria from current filters
+      const discoveryFilters = {
+        lgbtFriendly: filters.serviceTypes.includes('lgbtqia+'),
+        hivTesting: filters.serviceTypes.includes('testing'),
+        prepServices: filters.serviceTypes.includes('prep'),
+        pepServices: filters.serviceTypes.includes('pep'),
+        walkInAvailable: true, // Prefer walk-in
+        youthFriendly: true,
+        lowCost: true,
+      };
+      
+      // Discover new services via Gemini
+      const discovered = await discoverServices(
+        selectedCountry as import('@/data/countryGuides').CountryCode,
+        discoveryFilters,
+        language
+      );
+      
+      console.log(`🤖 AI discovered ${discovered.length} services`);
+      
+      // Deduplicate against directory
+      const unique = deduplicateServices(countryServices, discovered);
+      console.log(`✅ ${unique.length} unique AI services after deduplication`);
+      
+      setAiServices(unique);
+      setShowAiServices(true);
+      
+      // Show summary
+      const summary = language === 'fr'
+        ? `✨ ${unique.length} nouveau${unique.length > 1 ? 'x' : ''} service${unique.length > 1 ? 's' : ''} découvert${unique.length > 1 ? 's' : ''} par l'IA (affiché${unique.length > 1 ? 's' : ''} en orange sur la carte)`
+        : `✨ ${unique.length} new service${unique.length > 1 ? 's' : ''} discovered by AI (shown in orange on the map)`;
+      
+      setAiRecommendations(summary);
+    } catch (error) {
+      console.error('AI discovery failed:', error);
+      setAiRecommendations(
+        language === 'fr'
+          ? '❌ Échec de la découverte IA. Affichage des services du répertoire uniquement.'
+          : '❌ AI discovery failed. Showing directory services only.'
+      );
+    } finally {
+      setAiLoading(false);
+    }
   };
 
-  // Check online status
-  useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
-  }, []);
+  // Available service types for filtering
+  const serviceTypes = [
+    { value: 'prep', label: language === 'fr' ? 'PrEP' : 'PrEP' },
+    { value: 'pep', label: language === 'fr' ? 'PEP' : 'PEP' },
+    { value: 'testing', label: language === 'fr' ? 'Dépistage' : 'Testing' },
+    { value: 'treatment', label: language === 'fr' ? 'Traitement' : 'Treatment' },
+    { value: 'counseling', label: language === 'fr' ? 'Conseil' : 'Counseling' },
+    { value: 'lgbtqia', label: language === 'fr' ? 'LGBTQIA+' : 'LGBTQIA+ Friendly' },
+  ];
+
+  // Available countries
+  const countries = Array.from(new Set(servicesDirectory.map((s) => s.country))).sort();
+
+  const toggleServiceType = (type: string) => {
+    setFilters((prev) => ({
+      ...prev,
+      serviceTypes: prev.serviceTypes.includes(type)
+        ? prev.serviceTypes.filter((t) => t !== type)
+        : [...prev.serviceTypes, type],
+    }));
+  };
+
+  const handleCountryChange = (newCountry: string) => {
+    console.log('🌍 Changing country to:', newCountry);
+    setSelectedCountry(newCountry);
+    const newCenter = COUNTRY_CENTERS[newCountry] || COUNTRY_CENTERS.NG;
+    console.log('🎯 New map center:', newCenter);
+    setMapCenter(newCenter);
+    setSelectedService(null);
+    setAiRecommendations("");
+    
+    // Persist to settings context (global state)
+    if (setCountryCode) {
+      setCountryCode(newCountry as import('@/data/countryGuides').CountryCode);
+    }
+    
+    // Persist to URL params (survives refresh)
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      params.set('country', newCountry);
+      window.history.replaceState({}, '', `${window.location.pathname}?${params}`);
+    }
+    
+    // Debug: Log service coordinates
+    const country = newCountry;
+    setTimeout(() => {
+      const countryServices = servicesDirectory.filter(s => s.country === country);
+      const withCoords = countryServices.filter(s => s.lat && s.lng);
+      console.log(`📊 ${country}: ${countryServices.length} total, ${withCoords.length} with coordinates`);
+      if (withCoords.length > 0) {
+        console.log('Sample:', withCoords.slice(0, 2).map(s => ({ name: s.name, lat: s.lat, lng: s.lng })));
+      }
+    }, 100);
+  };
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-4 bg-zinc-950 px-4 py-6 text-zinc-50">
-      {/* Header */}
-      <header className="space-y-1">
-        <h1 className="text-xl font-semibold">
-          {t(strings.navigator.title, language)}
-        </h1>
-        <p className="text-xs text-zinc-300">
-          {t(strings.navigator.subtitle, language)} {guide.name}.
-        </p>
-        <div className="mt-2 rounded-lg border border-red-900 bg-red-950 px-3 py-2 text-[11px] text-red-100">
-          {t(strings.navigator.disclaimer, language)}
-        </div>
-      </header>
+    <div className="min-h-screen bg-zinc-950 text-zinc-50">
+      <div className="flex flex-col h-screen">
+        {/* Header */}
+        <header className="bg-zinc-900 border-b border-zinc-800 p-4">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h1 className="text-xl font-bold text-emerald-400">
+                  {t(strings.navigator.title, language)}
+                </h1>
+                <p className="text-sm text-zinc-400 mt-1">
+                  {language === 'fr'
+                    ? 'Trouvez des services de santé près de chez vous'
+                    : 'Find HIV services near you'}
+                </p>
+              </div>
+              
+              {/* View toggle */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowMap(true)}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    showMap
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                  }`}
+                >
+                  <span className="hidden sm:inline">
+                    {language === 'fr' ? '🗺️ Carte' : '🗺️ Map'}
+                  </span>
+                  <span className="sm:hidden">🗺️</span>
+                </button>
+                <button
+                  onClick={() => setShowMap(false)}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    !showMap
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                  }`}
+                >
+                  <span className="hidden sm:inline">
+                    {language === 'fr' ? '📋 Liste' : '📋 List'}
+                  </span>
+                  <span className="sm:hidden">📋</span>
+                </button>
+              </div>
+            </div>
 
-      {/* Offline notice */}
-      {!isOnline && (
-        <div className="rounded-lg border border-yellow-900 bg-yellow-950 px-3 py-2 text-[11px] text-yellow-100">
-          {t(strings.navigator.offlineNotice, language)}
-        </div>
-      )}
+            {/* Search and filters */}
+            <div className="space-y-3">
+              {/* Search bar */}
+              <div className="relative">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={
+                    language === 'fr'
+                      ? 'Rechercher des services...'
+                      : 'Search for services...'
+                  }
+                  className="w-full px-4 py-2 pl-10 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-400 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                />
+                <svg
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+              </div>
 
-      {/* Triage form or results view */}
-      {viewMode === "triage" ? (
-        <section className="space-y-3 rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-4 text-xs">
-          <p className="text-[11px] font-semibold uppercase text-emerald-300">
-            {t(strings.navigator.exposureForm, language)}
-          </p>
+              <div className="flex flex-wrap gap-2">
+                {/* Country selector */}
+                <select
+                  value={selectedCountry}
+                  onChange={(e) => handleCountryChange(e.target.value)}
+                  className="px-3 py-1.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:ring-2 focus:ring-emerald-500"
+                >
+                  {countries.map((country) => (
+                    <option key={country} value={country}>
+                      {country}
+                    </option>
+                  ))}
+                </select>
 
-          <form onSubmit={handleTriageSubmit} className="space-y-4">
-            {/* Time since exposure */}
-            <div>
-              <label className="text-[11px] font-semibold text-zinc-100">
-                {t(strings.navigator.timeSinceExposure, language)}
-              </label>
-              <input
-                type="number"
-                min="0"
-                max="120"
-                value={timeSinceExposure ?? ""}
-                onChange={(e) => {
-                  setTimeSinceExposure(e.target.value ? Number(e.target.value) : null);
-                  setFormError(null);
-                }}
-                placeholder={language === "fr" ? "p. ex., 24" : "e.g., 24"}
-                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-[11px] text-zinc-100 outline-none"
-              />
-              {formError && (
-                <p className="mt-1 text-[11px] text-red-400">{formError}</p>
+                {/* Service type filters */}
+                {serviceTypes.map((type) => (
+                  <button
+                    key={type.value}
+                    onClick={() => toggleServiceType(type.value)}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                      filters.serviceTypes.includes(type.value)
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                    }`}
+                  >
+                    {type.label}
+                  </button>
+                ))}
+
+                {/* Open now filter */}
+                <button
+                  onClick={() => setFilters((prev) => ({ ...prev, openNow: !prev.openNow }))}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    filters.openNow
+                      ? 'bg-green-600 text-white'
+                      : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                  }`}
+                >
+                  {language === 'fr' ? '🟢 Ouvert' : '🟢 Open Now'}
+                </button>
+
+                {/* Rating filter */}
+                <select
+                  value={filters.rating}
+                  onChange={(e) =>
+                    setFilters((prev) => ({ ...prev, rating: Number(e.target.value) }))
+                  }
+                  className="px-3 py-1.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:ring-2 focus:ring-emerald-500"
+                >
+                  <option value={0}>{language === 'fr' ? 'Toutes notes' : 'All ratings'}</option>
+                  <option value={4.5}>⭐ 4.5+</option>
+                  <option value={4.0}>⭐ 4.0+</option>
+                  <option value={3.5}>⭐ 3.5+</option>
+                </select>
+
+                {/* Location button */}
+                <button
+                  onClick={requestLocation}
+                  className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                  title={language === 'fr' ? 'Utiliser ma position' : 'Use my location'}
+                >
+                  📍 {language === 'fr' ? 'Ma position' : 'My Location'}
+                </button>
+
+                {/* AI Recommendations button */}
+                <button
+                  onClick={getAiRecommendations}
+                  disabled={loadingRecommendations}
+                  className="px-3 py-1.5 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={language === 'fr' ? 'Recommandations texte IA' : 'AI Text Recommendations'}
+                >
+                  {loadingRecommendations ? '⏳' : '💬'} {language === 'fr' ? 'IA Texte' : 'AI Text'}
+                </button>
+                
+                {/* AI Discovery button - New */}
+                <button
+                  onClick={discoverAiServices}
+                  disabled={aiLoading}
+                  className="px-3 py-1.5 bg-orange-600 text-white rounded-lg text-sm font-medium hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={language === 'fr' ? 'Découvrir nouveaux services' : 'Discover new services'}
+                >
+                  {aiLoading ? '⏳' : '🔍'} {language === 'fr' ? 'Découvrir' : 'Discover'}
+                </button>
+              </div>
+
+              {/* AI Recommendations display - Prominent */}
+              {aiRecommendations && (
+                <div className="mt-3 bg-gradient-to-r from-purple-900/90 to-purple-800/90 border-2 border-purple-500 px-4 py-3 rounded-lg shadow-lg">
+                  <div className="flex items-start gap-3">
+                    <span className="text-3xl">🤖</span>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-purple-200 mb-2 text-sm">
+                        {language === 'fr' ? '💡 Recommandations IA' : '💡 AI Recommendations'}
+                      </h4>
+                      <div className="text-sm text-purple-100 leading-relaxed whitespace-pre-wrap">
+                        {aiRecommendations}
+                      </div>
+                      <button
+                        onClick={() => setAiRecommendations("")}
+                        className="mt-2 text-xs text-purple-300 hover:text-purple-200 underline"
+                      >
+                        {language === 'fr' ? '✕ Masquer' : '✕ Hide'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Location error */}
+              {locationError && (
+                <div className="text-sm text-red-400 bg-red-950/50 px-3 py-2 rounded-lg">
+                  {locationError}
+                </div>
               )}
             </div>
+          </div>
+        </header>
 
-            {/* Exposure type */}
-            <div>
-              <label className="text-[11px] font-semibold text-zinc-100">
-                {t(strings.navigator.exposureTypeLabel, language)}
-              </label>
-              <select
-                value={exposureType}
-                onChange={(e) => setExposureType(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-[11px] text-zinc-100 outline-none"
-              >
-                <option value="penetrative">
-                  {language === "fr" ? "Pénétration" : "Penetrative sex"}
-                </option>
-                <option value="condom_break">
-                  {language === "fr" ? "Préservatif endommagé" : "Condom break"}
-                </option>
-                <option value="needle">
-                  {language === "fr" ? "Piqûre d'aiguille" : "Needle stick"}
-                </option>
-              </select>
-            </div>
-
-            {/* Condom used */}
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="condom"
-                checked={condomUsed}
-                onChange={(e) => setCondomUsed(e.target.checked)}
-                className="h-4 w-4 rounded"
+        {/* Main content */}
+        <div className="flex-1 overflow-hidden flex">
+          {showMap ? (
+            /* Map view */
+            <div className="flex-1 relative">
+              <InteractiveServiceMap
+                services={filteredServices}
+                userLocation={userLocation}
+                selectedService={selectedService}
+                onServiceClick={setSelectedService}
+                filters={filters}
+                language={language}
+                mapCenter={mapCenter}
               />
-              <label htmlFor="condom" className="text-[11px] font-semibold text-zinc-100">
-                {t(strings.navigator.condomUsedLabel, language)}
-              </label>
-            </div>
 
-            {/* Submit button */}
-            <button
-              type="submit"
-              disabled={timeSinceExposure === null}
-              className="w-full rounded-lg bg-emerald-500 px-3 py-2 text-[11px] font-semibold text-zinc-950 disabled:opacity-60"
-            >
-              {t(strings.navigator.submit, language)}
-            </button>
-          </form>
+              {/* Service details panel (overlay on mobile, sidebar on desktop) */}
+              {selectedService && (
+                <div className="absolute top-4 right-4 w-full max-w-md z-10 hidden lg:block">
+                  <ServiceDetailsPanel
+                    service={selectedService}
+                    language={language}
+                    onClose={() => setSelectedService(null)}
+                    userLocation={userLocation}
+                  />
+                </div>
+              )}
 
-          {/* PrEP/PEP guidance sections (always shown) */}
-          <div className="mt-6 space-y-4 border-t border-zinc-800 pt-4">
-            <div className="space-y-2">
-              <p className="text-[11px] font-semibold uppercase text-emerald-300">
-                PrEP – {language === "fr" ? "prévention avant exposition" : "preventing HIV before exposure"}
-              </p>
-              <h2 className="text-sm font-semibold text-zinc-50">{guide.prep.title}</h2>
-              <div className="space-y-2">
-                {guide.prep.steps.slice(0, 3).map((step) => (
-                  <div
-                    key={step.title}
-                    className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2"
+              {/* Mobile details panel (full screen) */}
+              {selectedService && (
+                <div className="absolute inset-0 bg-black/50 z-20 lg:hidden">
+                  <div className="absolute bottom-0 left-0 right-0 max-h-[80vh]">
+                    <ServiceDetailsPanel
+                      service={selectedService}
+                      language={language}
+                      onClose={() => setSelectedService(null)}
+                      userLocation={userLocation}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Loading indicator */}
+              {isLoading && (
+                <div className="absolute top-20 left-1/2 -translate-x-1/2 bg-white rounded-lg shadow-lg px-4 py-2 text-sm text-zinc-900 z-10">
+                  {language === 'fr' ? '⏳ Chargement des données...' : '⏳ Loading live data...'}
+                </div>
+              )}
+              
+              {/* Empty state - no services with coordinates */}
+              {!isLoading && filteredServices.length > 0 && filteredServices.every(s => !s.lat || !s.lng) && (
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl px-6 py-4 text-center max-w-md z-10">
+                  <div className="text-4xl mb-2">📍</div>
+                  <h3 className="font-semibold text-zinc-900 mb-2">
+                    {language === 'fr' ? 'Aucune coordonnée disponible' : 'No Coordinates Available'}
+                  </h3>
+                  <p className="text-sm text-zinc-600 mb-3">
+                    {language === 'fr'
+                      ? 'Les services trouvés n\'ont pas de coordonnées GPS. Utilisez la vue liste ci-dessous.'
+                      : 'Services found have no GPS coordinates. Use the list view below.'}
+                  </p>
+                  <button
+                    onClick={() => setShowMap(false)}
+                    className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700"
                   >
-                    <p className="text-[11px] font-semibold text-zinc-100">{step.title}</p>
-                    <p className="mt-1 text-[11px] text-zinc-300">{step.detail}</p>
+                    {language === 'fr' ? '📋 Voir la liste' : '📋 View List'}
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* List view */
+            <div className="flex-1 overflow-y-auto p-4">
+              <div className="max-w-4xl mx-auto space-y-3">
+                {isLoading && (
+                  <div className="text-center py-8 text-zinc-400">
+                    {language === 'fr' ? '⏳ Chargement...' : '⏳ Loading...'}
+                  </div>
+                )}
+
+                {!isLoading && filteredServices.length === 0 && (
+                  <div className="text-center py-12">
+                    <p className="text-zinc-400 text-lg mb-2">
+                      {language === 'fr'
+                        ? 'Aucun service trouvé'
+                        : 'No services found'}
+                    </p>
+                    <p className="text-zinc-500 text-sm">
+                      {language === 'fr'
+                        ? 'Essayez de modifier vos filtres'
+                        : 'Try adjusting your filters'}
+                    </p>
+                  </div>
+                )}
+
+                {filteredServices.map((service) => (
+                  <div
+                    key={service.id}
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-4 hover:border-emerald-500 transition-colors"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-white mb-1">{service.name}</h3>
+                        <p className="text-sm text-zinc-400 mb-2">
+                          {service.city}, {service.country}
+                        </p>
+                        <p className="text-sm text-zinc-300 line-clamp-2 mb-3">
+                          {language === 'fr' ? service.notesFr : service.notesEn}
+                        </p>
+
+                        {/* Status badges */}
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          {service.realTimeStatus?.isOpen !== undefined && (
+                            <span
+                              className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                                service.realTimeStatus.isOpen
+                                  ? 'bg-green-500/20 text-green-400'
+                                  : 'bg-red-500/20 text-red-400'
+                              }`}
+                            >
+                              {service.realTimeStatus.isOpen
+                                ? (language === 'fr' ? '🟢 Ouvert' : '🟢 Open')
+                                : (language === 'fr' ? '🔴 Fermé' : '🔴 Closed')}
+                            </span>
+                          )}
+                          {service.realTimeStatus?.rating && (
+                            <span className="px-2 py-1 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-400">
+                              ⭐ {service.realTimeStatus.rating.toFixed(1)}
+                            </span>
+                          )}
+                          {service.realTimeStatus?.distance && (
+                            <span className="px-2 py-1 rounded-full text-xs font-semibold bg-blue-500/20 text-blue-400">
+                              📍 {(service.realTimeStatus.distance / 1000).toFixed(1)} km
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Quick action buttons */}
+                        <div className="flex gap-2">
+                          {service.phone && (
+                            <a
+                              href={`tel:${service.phone.replace(/\D/g, '')}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-medium hover:bg-emerald-700 transition-colors flex items-center gap-1"
+                            >
+                              📞 {language === 'fr' ? 'Appeler' : 'Call'}
+                            </a>
+                          )}
+                          {service.lat && service.lng && (
+                            <a
+                              href={`https://www.google.com/maps/dir/?api=1&destination=${service.lat},${service.lng}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors flex items-center gap-1"
+                            >
+                              🗺️ {language === 'fr' ? 'Directions' : 'Directions'}
+                            </a>
+                          )}
+                          <button
+                            onClick={() => setSelectedService(service)}
+                            className="px-3 py-1.5 bg-zinc-700 text-white rounded-lg text-xs font-medium hover:bg-zinc-600 transition-colors flex items-center gap-1"
+                          >
+                            ℹ️ {language === 'fr' ? 'Détails' : 'Details'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
-          </div>
-        </section>
-      ) : (
-        /* Results view */
-        <section className="space-y-4">
-          {/* PEP status */}
-          {pepStatus && (
-            <div
-              className={`rounded-lg border px-3 py-2 text-[11px] ${
-                pepStatus === "urgent"
-                  ? "border-red-800 bg-red-950 text-red-100"
-                  : pepStatus === "window"
-                  ? "border-yellow-800 bg-yellow-950 text-yellow-100"
-                  : "border-zinc-800 bg-zinc-900 text-zinc-100"
-              }`}
-            >
-              {pepStatus === "urgent" && t(strings.navigator.pepUrgent, language)}
-              {pepStatus === "window" && t(strings.navigator.pepWindow, language)}
-              {pepStatus === "closed" && t(strings.navigator.pepClosed, language)}
-            </div>
           )}
+        </div>
 
-          {/* Geolocation prompt */}
-          {!userLocation && !geoRequested && (
-            <div className="rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-3">
-              <p className="text-[11px] font-semibold text-zinc-100">
-                {t(strings.navigator.geoConsentTitle, language)}
-              </p>
-              <p className="mt-1 text-[11px] text-zinc-300">
-                {t(strings.navigator.geoConsentBody, language)}
-              </p>
-              <div className="mt-2 flex gap-2">
-                <button
-                  onClick={requestGeolocation}
-                  className="flex-1 rounded-lg bg-emerald-500/20 px-2 py-1 text-center text-[11px] font-semibold text-emerald-100 hover:bg-emerald-500/30"
-                >
-                  {t(strings.navigator.geoAllow, language)}
-                </button>
-                <button
-                  onClick={() => setGeoRequested(true)}
-                  className="flex-1 rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-1 text-[11px] font-semibold text-zinc-100"
-                >
-                  {t(strings.navigator.geoDeny, language)}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* View toggle */}
+        {/* Bottom action bar (mobile) */}
+        <div className="lg:hidden bg-zinc-900 border-t border-zinc-800 p-3">
           <div className="flex gap-2">
             <button
-              onClick={() => setMapActive(false)}
-              className={`flex-1 rounded-lg px-3 py-2 text-[11px] font-semibold ${
-                !mapActive
-                  ? "bg-emerald-500 text-zinc-950"
-                  : "border border-zinc-700 bg-zinc-900 text-zinc-100"
-              }`}
+              onClick={() => setShowMap(!showMap)}
+              className="flex-1 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors"
             >
-              {t(strings.navigator.listViewToggle, language)}
-            </button>
-            <button
-              onClick={() => setMapActive(true)}
-              className={`flex-1 rounded-lg px-3 py-2 text-[11px] font-semibold ${
-                mapActive
-                  ? "bg-emerald-500 text-zinc-950"
-                  : "border border-zinc-700 bg-zinc-900 text-zinc-100"
-              }`}
-            >
-              {t(strings.navigator.mapViewToggle, language)}
+              {showMap
+                ? (language === 'fr' ? '📋 Voir la liste' : '📋 View List')
+                : (language === 'fr' ? '🗺️ Voir la carte' : '🗺️ View Map')}
             </button>
           </div>
-
-          {/* Clinic list view */}
-          {!mapActive && (
-            <div className="space-y-3">
-              {/* Filter tabs */}
-              <div className="flex gap-1 overflow-x-auto pb-2">
-                <button
-                  onClick={() => setFilterTab("all")}
-                  className={`whitespace-nowrap rounded-lg px-3 py-1 text-[11px] font-semibold transition ${
-                    filterTab === "all"
-                      ? "bg-emerald-500 text-zinc-950"
-                      : "border border-zinc-700 bg-zinc-900 text-zinc-300 hover:bg-zinc-800"
-                  }`}
-                >
-                  📍 All
-                </button>
-                <button
-                  onClick={() => setFilterTab("pep")}
-                  className={`whitespace-nowrap rounded-lg px-3 py-1 text-[11px] font-semibold transition ${
-                    filterTab === "pep"
-                      ? "bg-red-600 text-white"
-                      : "border border-zinc-700 bg-zinc-900 text-zinc-300 hover:bg-zinc-800"
-                  }`}
-                >
-                  🔴 PEP
-                </button>
-                <button
-                  onClick={() => setFilterTab("prep")}
-                  className={`whitespace-nowrap rounded-lg px-3 py-1 text-[11px] font-semibold transition ${
-                    filterTab === "prep"
-                      ? "bg-blue-600 text-white"
-                      : "border border-zinc-700 bg-zinc-900 text-zinc-300 hover:bg-zinc-800"
-                  }`}
-                >
-                  💊 PrEP
-                </button>
-                <button
-                  onClick={() => setFilterTab("lgbtqia")}
-                  className={`whitespace-nowrap rounded-lg px-3 py-1 text-[11px] font-semibold transition ${
-                    filterTab === "lgbtqia"
-                      ? "bg-purple-600 text-white"
-                      : "border border-zinc-700 bg-zinc-900 text-zinc-300 hover:bg-zinc-800"
-                  }`}
-                >
-                  🏳️‍🌈 LGBTQIA+
-                </button>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <p className="text-[11px] font-semibold text-zinc-300">
-                  {t(strings.navigator.nearestClinics, language)} ({enrichedClinics.length})
-                </p>
-                {placesLoading && (
-                  <span className="text-[10px] text-blue-400 animate-pulse">
-                    {language === 'fr' ? 'Chargement...' : 'Loading...'}
-                  </span>
-                )}
-              </div>
-              <div className="space-y-2">
-                {enrichedClinics.slice(0, 5).map((clinic) => {
-                  return (
-                    <div key={clinic.id} className="rounded-lg border border-zinc-800 bg-zinc-900 p-3 space-y-2">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[11px] font-semibold text-zinc-100 truncate">{clinic.name}</p>
-                          <p className="text-[10px] text-zinc-400 mt-0.5">{clinic.city}</p>
-                        </div>
-                      </div>
-                      
-                      {/* Real-time status from Google Places */}
-                      <ServiceStatusBadge 
-                        service={clinic} 
-                        language={language}
-                        showDistance={true}
-                        showRating={true}
-                      />
-                      
-                      <div className="flex gap-1 flex-wrap">
-                        {clinic.pepAvailability && clinic.pepAvailability !== "unknown" && (
-                          <span className={`text-[10px] font-semibold px-2 py-1 rounded ${
-                            clinic.pepAvailability === "high" ? "bg-red-900/50 text-red-200" :
-                            clinic.pepAvailability === "medium" ? "bg-orange-900/50 text-orange-200" :
-                            "bg-red-950/50 text-red-300"
-                          }`}>
-                            PEP
-                          </span>
-                        )}
-                        {clinic.prepAvailability && clinic.prepAvailability !== "unknown" && (
-                          <span className="text-[10px] font-semibold px-2 py-1 rounded bg-blue-900/50 text-blue-200">
-                            PrEP
-                          </span>
-                        )}
-                        {clinic.lgbtqiaFriendly && clinic.lgbtqiaFriendly > 0 && (
-                          <span className="text-[10px] font-semibold px-2 py-1 rounded bg-purple-900/50 text-purple-200">
-                            🏳️‍🌈
-                          </span>
-                        )}
-                      </div>
-                      {clinic.phone && (
-                        <a
-                          href={`tel:${clinic.phone}`}
-                          className="block w-full rounded-lg bg-emerald-600 px-2 py-1 text-center text-[10px] font-bold text-white hover:bg-emerald-700"
-                        >
-                          📞 Call
-                        </a>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Map view */}
-          {mapActive && (
-            <div className="rounded-lg border border-zinc-800 overflow-hidden bg-zinc-900">
-              <MapContainer
-                clinics={sortedClinics}
-                userLocation={userLocation ? { lat: userLocation.latitude, lng: userLocation.longitude } : null}
-                countryCenter={COUNTRY_CENTERS[countryCode]}
-                height={400}
-              />
-            </div>
-          )}
-
-          {/* Back button */}
-          <button
-            onClick={() => {
-              setViewMode("triage");
-              setTimeSinceExposure(null);
-              setMapActive(false);
-            }}
-            className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-[11px] font-semibold text-zinc-100 hover:bg-zinc-800"
-          >
-            {language === "fr" ? "Retour à la forme" : "Back to form"}
-          </button>
-        </section>
-      )}
-    </main>
+        </div>
+      </div>
+    </div>
   );
 }
-
-

@@ -1,4 +1,5 @@
 import type { CountryCode } from "./countryGuides";
+import type { AIServiceMetadata } from "@/lib/ai-service-discovery";
 
 export type ServiceType =
   | "public_clinic"
@@ -32,6 +33,7 @@ export interface ServiceEntry {
   prepAvailability?: "high" | "medium" | "low" | "unknown"; // assessed PrEP likelihood
   hours?: string; // opening hours, e.g., "Mon-Fri 8am-5pm"
   website?: string; // facility website or contact page
+  aiMetadata?: AIServiceMetadata; // AI-enriched metadata
 }
 
 export const servicesDirectory: ServiceEntry[] = [
@@ -68,7 +70,14 @@ export const servicesDirectory: ServiceEntry[] = [
     notesEn:
       "IHVN runs national prevention programmes and has explicit PrEP & PEP information on programme pages and hotlines for linkage. Good for referrals and formal PrEP enrollment. PEP_CERTAINTY: High; PrEP_CERTAINTY: High.",
     notesFr:
-      "IHVN gère des programmes nationaux de prévention et fournit des informations sur la PEP et la PrEP. Bon pour l’orientation vers les services. PEP_CERTAINTY: Élevé; PrEP_CERTAINTY: Élevé.",
+      "IHVN gère des programmes nationaux de prévention et fournit des informations sur la PEP et la PrEP. Bon pour l'orientation vers les services. PEP_CERTAINTY: Élevé; PrEP_CERTAINTY: Élevé.",
+    lat: 9.0579,
+    lng: 7.4951,
+    lgbtqiaFriendly: 3,
+    pepAvailability: "high",
+    prepAvailability: "high",
+    phone: "+234 809 999 0000",
+    website: "https://www.ihvnigeria.org",
   },
   {
     id: "ng_luth_art_clinic",
@@ -81,6 +90,13 @@ export const servicesDirectory: ServiceEntry[] = [
       "Major tertiary referral ART centre. Staff handle emergency PEP (request 'post-exposure prophylaxis') and PrEP enrolment at dedicated HIV clinic. Arrive early; expect counselling and paperwork. PEP_CERTAINTY: Medium-High; PrEP_CERTAINTY: Medium.",
     notesFr:
       "Centre de référence tertiaire. Prise en charge PEP d'urgence et initiation PrEP en clinique VIH. Arrivez tôt. PEP_CERTAINTY: Moyen-Élevé; PrEP_CERTAINTY: Moyen.",
+    lat: 6.4698,
+    lng: 3.3792,
+    lgbtqiaFriendly: 3,
+    pepAvailability: "medium",
+    prepAvailability: "medium",
+    phone: "+234 1 809 6001",
+    hours: "Mon-Fri 8am-4pm",
   },
   {
     id: "ng_lifelink_oss_amuwo",
@@ -93,6 +109,12 @@ export const servicesDirectory: ServiceEntry[] = [
       "Peer-led OSS targeted at key populations and youth; known for discrete services and peer counselling. Website/program pages mention PEP and PrEP activities in OSS sites. Good for confidential access and linkage. PEP_CERTAINTY: Medium-High; PrEP_CERTAINTY: High.",
     notesFr:
       "Centre OSS animé par pairs pour populations clés et jeunes; services discrets. Les pages programme mentionnent PEP/PrEP. PEP_CERTAINTY: Moyen-Élevé; PrEP_CERTAINTY: Élevé.",
+    lat: 6.4474,
+    lng: 3.2847,
+    lgbtqiaFriendly: 5,
+    pepAvailability: "high",
+    prepAvailability: "high",
+    hours: "Mon-Sat 9am-5pm",
   },
   {
     id: "ng_fct_asokoro_art",
@@ -104,7 +126,13 @@ export const servicesDirectory: ServiceEntry[] = [
     notesEn:
       "Public district/teaching hospital with an ART clinic. Offers HIV testing and linkage; PEP commonly available in emergency settings (verify by phone). PEP_CERTAINTY: Medium; PrEP_CERTAINTY: Medium.",
     notesFr:
-      "Hôpital de district avec clinique ART. Dépistage et orientation; PEP disponible en situations d’urgence. PEP_CERTAINTY: Moyen; PrEP_CERTAINTY: Moyen.",
+      "Hôpital de district avec clinique ART. Dépistage et orientation; PEP disponible en situations d'urgence. PEP_CERTAINTY: Moyen; PrEP_CERTAINTY: Moyen.",
+    lat: 9.0353,
+    lng: 7.5207,
+    lgbtqiaFriendly: 3,
+    pepAvailability: "medium",
+    prepAvailability: "medium",
+    hours: "Mon-Fri 8am-4pm",
   },
   {
     id: "ng_state_ngos_various",
@@ -129,6 +157,13 @@ export const servicesDirectory: ServiceEntry[] = [
       "Large teaching hospital ART clinic. Offers HIV testing, ART follow-up, and prevention counseling. PEP availability commonly arranged via emergency/ART units. PEP_CERTAINTY: Medium; PrEP_CERTAINTY: Medium.",
     notesFr:
       "Grand hôpital universitaire avec clinique ART. Dépistage, suivi ART et counseling prévention. PEP_CERTAINTY: Moyen; PrEP_CERTAINTY: Moyen.",
+    lat: 6.4546,
+    lng: 7.5192,
+    lgbtqiaFriendly: 3,
+    pepAvailability: "medium",
+    prepAvailability: "medium",
+    phone: "+234 42 252 402",
+    hours: "Mon-Fri 8am-4pm",
   },
   {
     id: "ng_nison_hiv_hotline",
@@ -337,6 +372,13 @@ export const servicesDirectory: ServiceEntry[] = [
       "Anova runs key-population and clinic support programmes in South Africa, including PrEP rollouts (Health4Men and other initiatives). They support clinics that provide PrEP and PEP as part of national guidelines. PEP_CERTAINTY: High; PrEP_CERTAINTY: High.",
     notesFr:
       "Anova soutient des programmes pour populations clés et le déploiement de la PrEP (Health4Men). PEP_CERTAINTY: Élevé; PrEP_CERTAINTY: Élevé.",
+    lat: -33.9249,
+    lng: 18.4241,
+    lgbtqiaFriendly: 5,
+    pepAvailability: "high",
+    prepAvailability: "high",
+    phone: "+27 21 300 3500",
+    website: "https://anovahealth.co.za",
   },
   {
     id: "za_right_to_care",
@@ -349,6 +391,13 @@ export const servicesDirectory: ServiceEntry[] = [
       "Right to Care implements HIV prevention programs including PrEP and PEP awareness and clinic-level services supported by PEPFAR and national programmes. PEP_CERTAINTY: High; PrEP_CERTAINTY: High.",
     notesFr:
       "Right to Care met en œuvre des programmes prévention VIH incluant PrEP et sensibilisation PEP au niveau clinique. PEP_CERTAINTY: Élevé; PrEP_CERTAINTY: Élevé.",
+    lat: -26.2041,
+    lng: 28.0473,
+    lgbtqiaFriendly: 4,
+    pepAvailability: "high",
+    prepAvailability: "high",
+    phone: "+27 11 276 8800",
+    website: "https://righttocare.org",
   },
   {
     id: "za_public_clinic_doh",
@@ -361,6 +410,11 @@ export const servicesDirectory: ServiceEntry[] = [
       "South African public clinics in many districts follow national PrEP/PEP guidelines; use national PrEP finders or facility lists to locate nearest site. Availability varies by province. PEP_CERTAINTY: Medium-High; PrEP_CERTAINTY: High.",
     notesFr:
       "Les cliniques publiques sud-africaines appliquent les directives nationales PrEP/PEP ; vérifiez la disponibilité provinciale. PEP_CERTAINTY: Moyen-Élevé; PrEP_CERTAINTY: Élevé.",
+    lat: -29.8587,
+    lng: 31.0218,
+    lgbtqiaFriendly: 3,
+    pepAvailability: "medium",
+    prepAvailability: "high",
   },
   {
     id: "za_prep_finder",
@@ -373,6 +427,11 @@ export const servicesDirectory: ServiceEntry[] = [
       "Aggregated directory used in South Africa to find active PrEP delivery sites. Useful to verify PrEP availability before travel. PEP_CERTAINTY: N/A (finder); PrEP_CERTAINTY: High (finder-backed).",
     notesFr:
       "Répertoire agrégé permettant de trouver les sites PrEP actifs ; utile pour vérifier la disponibilité. PEP_CERTAINTY: N/A; PrEP_CERTAINTY: Élevé.",
+    lat: -25.7479,
+    lng: 28.2293,
+    lgbtqiaFriendly: 4,
+    prepAvailability: "high",
+    website: "https://www.myprep.co.za",
   },
   {
     id: "za_clinic_keypop_cape",
@@ -385,6 +444,12 @@ export const servicesDirectory: ServiceEntry[] = [
       "Several MSM- and sex-worker-friendly clinics in Cape Town provide same-day PEP and active PrEP services; these are usually run by NGOs or supported by research programmes. PEP_CERTAINTY: Medium-High; PrEP_CERTAINTY: High.",
     notesFr:
       "Des cliniques adaptées aux MSM et travailleurs du sexe à Cape Town fournissent souvent PEP le jour même et PrEP. PEP_CERTAINTY: Moyen-Élevé; PrEP_CERTAINTY: Élevé.",
+    lat: -33.9249,
+    lng: 18.4241,
+    lgbtqiaFriendly: 5,
+    pepAvailability: "high",
+    prepAvailability: "high",
+    hours: "Mon-Fri 8am-6pm",
   },
 
   // ------------------------
