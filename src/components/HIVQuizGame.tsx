@@ -319,6 +319,9 @@ export default function HIVQuizGame({ language, onComplete }: HIVQuizGameProps) 
     
     setLifelinesUsed({ ...lifelinesUsed, askAI: lifelinesUsed.askAI + 1 });
     
+    // Show loading state
+    setAiHint(language === 'en' ? 'Generating hint...' : 'Génération de l\'indice...');
+    
     try {
       const questionText = language === 'en' ? currentQuestion.questionEn : currentQuestion.questionFr;
       const optionsText = Object.entries(currentQuestion.options)
@@ -340,6 +343,8 @@ export default function HIVQuizGame({ language, onComplete }: HIVQuizGameProps) 
             { role: 'user', content: hintPrompt }
           ],
           language,
+          sessionId: 'quiz-hint',
+          voiceMode: false,
         }),
       });
 
@@ -350,9 +355,15 @@ export default function HIVQuizGame({ language, onComplete }: HIVQuizGameProps) 
       }
 
       const data = await response.json();
+      console.log('AI hint response:', data);
+      
       const hint = data.answer || data.response || 'Hint unavailable';
       setAiHint(hint);
-      await speakText(hint);
+      
+      // Speak the hint if voice is enabled
+      if (hint && hint !== 'Hint unavailable') {
+        await speakText(hint);
+      }
     } catch (error) {
       console.error('AI hint error:', error);
       const errorMessage = language === 'en' 
