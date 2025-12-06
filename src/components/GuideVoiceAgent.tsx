@@ -96,20 +96,16 @@ export default function GuideVoiceAgent({ onFallback }: GuideVoiceAgentProps) {
       setConversationMessages(updated);
       setTranscript("");
 
-      const prompt = getHealthGuidePrompt(language, countryCode);
-      const systemPrompt = discreetMode ? getDiscreetModePrompt(prompt.systemPrompt, language) : prompt.systemPrompt;
-
-      const res = await fetch("/api/conversation", {
+      const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [
-            { role: "system", content: systemPrompt },
-            ...updated.map((m) => ({ role: m.role === "user" ? "user" : "assistant", content: m.text })),
-          ],
+          messages: updated.map((m) => ({ 
+            role: m.role === "user" ? "user" : "assistant", 
+            content: m.text 
+          })),
           language,
-          countryCode,
-          mode: "guide_voice",
+          voiceMode: true,
         }),
       });
 

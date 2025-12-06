@@ -46,7 +46,7 @@ ${JSON.stringify({ resources }, null, 2)}`;
 
 export async function POST(req: Request) {
   try {
-    const { messages, countryCode, sessionId, language = 'en' } = await req.json();
+    const { messages, countryCode, sessionId, language = 'en', voiceMode = false } = await req.json();
     
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json(
@@ -73,7 +73,12 @@ export async function POST(req: Request) {
 
     // Generate adaptive system prompt based on emotional state
     const BASE_SYSTEM_PROMPT = getSystemPrompt();
-    const SYSTEM_PROMPT = generateAdaptivePrompt(BASE_SYSTEM_PROMPT, sentiment, language);
+    const voiceModeInstruction = voiceMode 
+      ? (language === 'fr' 
+        ? '\n\nIMPORTANT: Réponds en 2-3 phrases MAXIMUM. Sois direct et concis pour la lecture audio.' 
+        : '\n\nIMPORTANT: Respond in 2-3 sentences MAXIMUM. Be direct and concise for audio playback.')
+      : '';
+    const SYSTEM_PROMPT = generateAdaptivePrompt(BASE_SYSTEM_PROMPT + voiceModeInstruction, sentiment, language);
     
     // Format messages for Gemini
     const historyMessages = messages.slice(0, -1).map((msg: {role: string, content: string}) => ({

@@ -33,58 +33,37 @@ export default function QuizCertificate({
     setIsGenerating(true);
 
     try {
-      // Simple approach: Use browser's native screenshot API or print
-      // Since html2canvas has issues with modern Tailwind colors
-      
-      // Option 1: Try native Share API (mobile-friendly)
-      if (navigator.share && navigator.canShare) {
-        await navigator.share({
-          title: language === 'en' ? 'HIV Education Certificate' : 'Certificat d\'Éducation VIH',
-          text: language === 'en' 
-            ? `I completed the HIV Education Quiz! Score: ${score} points (${percentage}%)`
-            : `J'ai complété le Quiz d'Éducation VIH! Score: ${score} points (${percentage}%)`,
-        });
-        return;
-      }
-      
-      // Option 2: Use print dialog which works reliably
-      const printMessage = language === 'en'
-        ? 'To save your certificate:\n\n1. A print dialog will open\n2. Select "Save as PDF" or "Microsoft Print to PDF"\n3. Click Save\n\nReady?'
-        : 'Pour enregistrer votre certificat:\n\n1. Une boîte de dialogue d\'impression s\'ouvrira\n2. Sélectionnez "Enregistrer en PDF"\n3. Cliquez sur Enregistrer\n\nPrêt?';
-      
-      if (confirm(printMessage)) {
-        // Add print-specific styles temporarily
-        const style = document.createElement('style');
-        style.id = 'certificate-print-style';
-        style.textContent = `
-          @media print {
-            body * { visibility: hidden; }
-            #certificate-container, #certificate-container * { visibility: visible; }
-            #certificate-container { 
-              position: absolute; 
-              left: 0; 
-              top: 0; 
-              width: 100%; 
-              background: white !important;
-              padding: 40px;
-            }
+      // Add print-specific styles temporarily
+      const style = document.createElement('style');
+      style.id = 'certificate-print-style';
+      style.textContent = `
+        @media print {
+          body * { visibility: hidden; }
+          #certificate-container, #certificate-container * { visibility: visible; }
+          #certificate-container { 
+            position: absolute; 
+            left: 0; 
+            top: 0; 
+            width: 100%; 
+            background: white !important;
+            padding: 40px;
           }
-        `;
-        document.head.appendChild(style);
-        
-        // Mark certificate for printing
-        if (certificateRef.current) {
-          certificateRef.current.id = 'certificate-container';
         }
-        
-        window.print();
-        
-        // Cleanup
-        setTimeout(() => {
-          const printStyle = document.getElementById('certificate-print-style');
-          if (printStyle) printStyle.remove();
-        }, 1000);
+      `;
+      document.head.appendChild(style);
+      
+      // Mark certificate for printing
+      if (certificateRef.current) {
+        certificateRef.current.id = 'certificate-container';
       }
+      
+      window.print();
+      
+      // Cleanup
+      setTimeout(() => {
+        const printStyle = document.getElementById('certificate-print-style');
+        if (printStyle) printStyle.remove();
+      }, 1000);
     } catch (error) {
       console.error('Certificate generation error:', error);
       alert(language === 'en' 

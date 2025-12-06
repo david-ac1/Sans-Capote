@@ -5,6 +5,7 @@ import { emergencyHotlines } from '@/data/emergencyHotlines';
 import HIVQuizGame from '@/components/HIVQuizGame';
 import QuizCertificate from '@/components/QuizCertificate';
 import { useSettings } from "../settings-provider";
+import { AlertCircle, Gamepad2, Award, Phone } from 'lucide-react';
 
 type ViewMode = 'hotlines' | 'quiz' | 'certificate';
 
@@ -27,12 +28,12 @@ export default function ResourcesPage() {
   };
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-4 bg-zinc-950 px-4 py-6 text-zinc-50">
-      <header className="space-y-1">
-        <h1 className="text-xl font-semibold">
+    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 bg-[#F9F9F9] px-6 py-8 lg:py-12">
+      <header className="space-y-3 max-w-2xl">
+        <h1 className="text-3xl lg:text-4xl font-bold text-[#222222]">
           {language === 'en' ? 'Debunk the Stigma' : 'Démystifier'}
         </h1>
-        <p className="text-xs text-zinc-300">
+        <p className="text-base text-[#555555] leading-relaxed">
           {language === 'en'
             ? 'Combat misinformation. Access emergency support and test your HIV knowledge.'
             : 'Combattez la désinformation. Accès urgence et testez vos connaissances VIH.'}
@@ -40,52 +41,62 @@ export default function ResourcesPage() {
       </header>
 
       {/* Navigation Tabs */}
-      <div className="flex gap-2">
+      <div className="flex gap-3 max-w-2xl flex-wrap sm:flex-nowrap">
         <button
           onClick={() => setViewMode('hotlines')}
-          className={`flex-1 rounded-lg border px-3 py-2 text-[10px] font-semibold transition-colors ${
+          className={`flex-1 min-w-[140px] rounded-xl border-2 px-5 py-3.5 text-sm font-bold transition-all shadow-sm ${
             viewMode === 'hotlines'
-              ? 'border-red-700 bg-red-900 text-red-100'
-              : 'border-zinc-800 bg-zinc-900 text-zinc-400 hover:bg-zinc-800'
+              ? 'border-[#E63946] bg-[#E63946] text-white scale-105'
+              : 'border-[#222222]/10 bg-white text-[#555555] hover:border-[#E63946] hover:shadow-md'
           }`}
         >
-          {language === 'en' ? 'Hotlines' : 'Urgence'}
+          <span className="flex items-center justify-center gap-2">
+            <AlertCircle className="w-4 h-4" />
+            {language === 'en' ? 'Hotlines' : 'Urgence'}
+          </span>
         </button>
         <button
           onClick={() => {
             setViewMode('quiz');
             setQuizResults(null);
           }}
-          className={`flex-1 rounded-lg border px-3 py-2 text-[10px] font-semibold transition-colors ${
+          className={`flex-1 min-w-[140px] rounded-xl border-2 px-5 py-3.5 text-sm font-bold transition-all shadow-sm ${
             viewMode === 'quiz'
-              ? 'border-emerald-700 bg-emerald-900 text-emerald-100'
-              : 'border-zinc-800 bg-zinc-900 text-zinc-400 hover:bg-zinc-800'
+              ? 'border-[#008080] bg-[#008080] text-white scale-105'
+              : 'border-[#222222]/10 bg-white text-[#555555] hover:border-[#008080] hover:shadow-md'
           }`}
         >
-          {language === 'en' ? 'Quiz' : 'Quiz'}
+          <span className="flex items-center justify-center gap-2">
+            <Gamepad2 className="w-4 h-4" />
+            {language === 'en' ? 'Quiz' : 'Quiz'}
+          </span>
         </button>
         {quizResults && (
           <button
             onClick={() => setViewMode('certificate')}
-            className={`flex-1 rounded-lg border px-3 py-2 text-[10px] font-semibold transition-colors ${
+            className={`flex-1 min-w-[140px] rounded-xl border-2 px-5 py-3.5 text-sm font-bold transition-all shadow-sm ${
               viewMode === 'certificate'
-                ? 'border-yellow-700 bg-yellow-900 text-yellow-100'
-                : 'border-zinc-800 bg-zinc-900 text-zinc-400 hover:bg-zinc-800'
+                ? 'border-[#F4D35E] bg-[#F4D35E] text-[#222222] scale-105'
+                : 'border-[#222222]/10 bg-white text-[#555555] hover:border-[#F4D35E] hover:shadow-md'
             }`}
           >
-            {language === 'en' ? 'Certificate' : 'Certificat'}
+            <span className="flex items-center justify-center gap-2">
+              <Award className="w-4 h-4" />
+              {language === 'en' ? 'Certificate' : 'Certificat'}
+            </span>
           </button>
         )}
       </div>
 
       {/* Content Area */}
       {viewMode === 'hotlines' && (
-        <div className="space-y-4">
-          <section className="rounded-xl border border-red-800 bg-red-950 px-3 py-3 text-xs">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-red-300 mb-1">
+        <div className="space-y-6 max-w-2xl">
+          <section className="rounded-xl border-2 border-[#E63946] bg-[#E63946]/10 px-5 py-4">
+            <p className="text-sm font-bold text-[#E63946] mb-2 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4" />
               {language === 'en' ? 'Emergency HIV/AIDS Hotlines' : 'Lignes d\'Urgence VIH/SIDA'}
             </p>
-            <p className="text-[11px] text-zinc-300">
+            <p className="text-sm text-[#222222]">
               {language === 'en'
                 ? 'Free, confidential support 24/7. Tap to call immediately.'
                 : 'Soutien gratuit et confidentiel 24h/24. Appuyez pour appeler.'}
@@ -95,38 +106,38 @@ export default function ResourcesPage() {
           {emergencyHotlines.map((country) => (
             <section
               key={country.countryCode}
-              className="space-y-2 rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-3"
+              className="space-y-3 rounded-xl border border-[#222222]/10 bg-white px-5 py-5 shadow-sm"
             >
-              <div className="space-y-1">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-300">
+              <div>
+                <p className="text-base font-bold text-[#008080]">
                   {country.flag} {country.country}
                 </p>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {country.hotlines.map((hotline, index) => (
                   <article
                     key={index}
-                    className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2"
+                    className="rounded-lg border border-[#222222]/10 bg-[#F9F9F9] px-4 py-3"
                   >
-                    <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-start justify-between gap-3">
                       <div className="flex-1">
-                        <h2 className="text-[11px] font-semibold text-zinc-100">
+                        <h2 className="text-sm font-semibold text-[#222222]">
                           {language === 'en' ? hotline.nameEn : hotline.nameFr}
                         </h2>
-                        <p className="mt-1 text-[10px] text-zinc-400">
+                        <p className="mt-1 text-sm text-[#555555]">
                           {language === 'en' ? hotline.descriptionEn : hotline.descriptionFr}
                         </p>
-                        <p className="mt-1 text-[9px] text-zinc-500">
+                        <p className="mt-1 text-xs text-[#555555] italic">
                           {language === 'en' ? hotline.availableEn : hotline.availableFr}
                         </p>
                       </div>
                       <button
                         onClick={() => makeCall(hotline.number)}
-                        className="ml-1 flex flex-col items-center justify-center rounded-lg border border-emerald-700 bg-emerald-900 px-3 py-2 hover:bg-emerald-800 transition-colors"
+                        className="flex flex-col items-center justify-center rounded-lg bg-[#008080] px-4 py-3 hover:bg-[#006666] transition-colors shadow-sm"
                       >
-                        <span className="text-xs">📞</span>
-                        <span className="text-[9px] font-semibold text-emerald-100">{hotline.number}</span>
+                        <Phone className="w-5 h-5 text-white" />
+                        <span className="text-xs font-bold text-white mt-1">{hotline.number}</span>
                       </button>
                     </div>
                   </article>

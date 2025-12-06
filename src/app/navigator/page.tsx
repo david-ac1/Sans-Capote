@@ -524,17 +524,17 @@ export default function NavigatorPage() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-50">
+    <div className="min-h-screen bg-[#F9F9F9]">
       <div className="flex flex-col h-screen">
         {/* Header */}
-        <header className="bg-zinc-900 border-b border-zinc-800 p-4">
+        <header className="bg-white border-b border-[#222222]/10 px-6 py-5 shadow-sm">
           <div className="max-w-7xl mx-auto">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h1 className="text-xl font-bold text-emerald-400">
+                <h1 className="text-2xl font-bold text-[#008080]">
                   {t(strings.navigator.title, language)}
                 </h1>
-                <p className="text-sm text-zinc-400 mt-1">
+                <p className="text-sm text-[#555555] mt-1">
                   {language === 'fr'
                     ? 'Trouvez des services de santé près de chez vous'
                     : 'Find HIV services near you'}
@@ -545,10 +545,10 @@ export default function NavigatorPage() {
               <div className="flex gap-2">
                 <button
                   onClick={() => setShowMap(true)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  className={`px-4 py-2 rounded-lg font-medium transition-all shadow-sm ${
                     showMap
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                      ? 'bg-[#008080] text-white'
+                      : 'bg-white border border-[#222222]/20 text-[#555555] hover:border-[#008080]'
                   }`}
                 >
                   <span className="hidden sm:inline">

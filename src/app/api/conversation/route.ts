@@ -37,6 +37,7 @@ interface ConversationRequestBody {
   mode?: "general" | "crisis" | "navigator" | "resources";
   crisisContext?: CrisisContext;
   sessionId?: string; // For emotional journey tracking
+  voiceMode?: boolean; // For ultra-brief 2-3 sentence responses
 }
 
 interface ConversationAnswer {
@@ -82,6 +83,7 @@ async function tryGeminiAnswer(
     mode = "general",
     crisisContext,
     sessionId,
+    voiceMode = false,
   } = body;
 
   const isFrench = language === "fr";
@@ -160,8 +162,7 @@ async function tryGeminiAnswer(
       ? `${rawUserContent.slice(0, 2000)}…`
       : rawUserContent;
 
-  const baseSystemPrompt = isFrench
-    ? `Tu es Sans Capote, un assistant numérique en santé sexuelle et prévention du VIH pour des personnes vivant en Afrique. Tu dois :
+  const frenchBase = `Tu es Sans Capote, un assistant numérique en santé sexuelle et prévention du VIH pour des personnes vivant en Afrique. Tu dois :
 - Utiliser un langage simple, chaleureux, sans jugement, adapté à des personnes sans formation médicale.
 - Parler comme une vraie personne : naturel, conversationnel, avec empathie.
 - Garder les réponses courtes (max 400 mots) pour une lecture vocale fluide.
@@ -188,8 +189,9 @@ ${crisisSnippet}
 Services locaux (à privilégier) :
 ${localServicesSnippet || "(pas encore de services locaux listés)"}
 
-Réponds UNIQUEMENT en français.`
-    : `You are Sans Capote, a warm and empathetic AI sexual health and HIV prevention guide for people in African countries. You must:
+Réponds UNIQUEMENT en français.`;
+
+  const englishBase = `You are Sans Capote, a warm and empathetic AI sexual health and HIV prevention guide for people in African countries. You must:
 - Use simple, non-judgmental language suitable for non-medical users.
 - Speak naturally and conversationally, like a real person with genuine empathy.
 - Keep answers short and scannable (max 400 words) for natural voice delivery.
@@ -217,6 +219,15 @@ Local services (prefer mentioning these when relevant):
 ${localServicesSnippet || "(no specific local services listed yet)"}
 
 Reply ONLY in English.`;
+
+  // Add voice mode constraint if requested
+  const voiceModeInstruction = voiceMode
+    ? (language === "fr"
+      ? "\n\nIMPORTANT: Mode vocal activé. Réponds en 2-3 phrases MAXIMUM. Sois direct, empathique et concis. TOUJOURS terminer par une question courte pour demander si l'utilisateur veut en savoir plus (ex: 'Voulez-vous que je vous en dise plus?', 'Des questions?', 'Ça vous aide?')."
+      : "\n\nIMPORTANT: Voice mode active. Respond in 2-3 sentences MAXIMUM. Be direct, empathetic and concise. ALWAYS end with a short question asking if user wants to learn more (e.g., 'Want to know more?', 'Any questions?', 'Does this help?').")
+    : "";
+
+  const baseSystemPrompt = (isFrench ? frenchBase : englishBase) + voiceModeInstruction;
 
   // Apply sentiment-aware adaptive prompt
   const systemPrompt = generateAdaptivePrompt(baseSystemPrompt, sentiment, language);

@@ -424,26 +424,26 @@ export default function CrisisVoiceAgent({ onComplete }: CrisisVoiceAgentProps) 
   return (
     <section 
       ref={containerRef}
-      className="space-y-4 rounded-xl border border-red-900 bg-red-950 px-4 py-4 text-xs text-red-100"
+      className="space-y-5 rounded-lg border-2 border-[#E63946] bg-white px-6 py-6"
       role="region"
       aria-label={language === "fr" ? "Évaluation d'urgence vocale" : "Crisis voice assessment"}
       aria-live="polite"
     >
       <div className="flex items-center justify-between">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-red-200">{language === "fr" ? "Urgence — Consultation vocale" : "Crisis — Voice Assessment"}</p>
+        <h2 className="text-base font-bold text-[#E63946] uppercase tracking-wide">{language === "fr" ? "Urgence — Consultation vocale" : "Crisis — Voice Assessment"}</h2>
         {userStarted && (
           <div 
-            className="rounded-full bg-red-800 px-2 py-1 text-[10px] font-semibold text-red-50"
+            className="rounded-full bg-[#E63946] px-3 py-1 text-xs font-bold text-white"
             role="status"
             aria-label={language === "fr" ? `Question ${questionIndex + 1} sur ${questions.length}` : `Question ${questionIndex + 1} of ${questions.length}`}
           >
-            {language === "fr" ? `Question ${questionIndex + 1}/${questions.length}` : `Question ${questionIndex + 1}/${questions.length}`}
+            {questionIndex + 1}/{questions.length}
           </div>
         )}
       </div>
       {error && (
         <div 
-          className="rounded-lg bg-red-900/50 px-3 py-2 text-[11px] text-red-200" 
+          className="rounded-lg bg-[#FFE5E8] px-4 py-3 text-sm text-[#E63946]" 
           role="alert"
           aria-live="assertive"
         >
@@ -452,68 +452,62 @@ export default function CrisisVoiceAgent({ onComplete }: CrisisVoiceAgentProps) 
       )}
 
       {!userStarted && showInstructions ? (
-        <div className="space-y-3">
-          <div className="rounded-lg border border-red-800 bg-red-900/30 px-3 py-3 text-[11px] text-red-50 space-y-2">
-            <p className="font-semibold text-[12px]">{language === "fr" ? "📋 Comment ça marche" : "📋 How it works"}</p>
-            <ul className="space-y-1 text-[11px] list-disc list-inside text-red-100">
-              <li>{language === "fr" ? "Le système vous posera 9 questions simples" : "The system will ask you 9 simple questions"}</li>
-              <li>{language === "fr" ? "Parlez naturellement après chaque question" : "Speak naturally after each question"}</li>
-              <li>{language === "fr" ? "Faites une pause quand vous avez terminé" : "Pause when you're done speaking"}</li>
-              <li>{language === "fr" ? "Le système posera automatiquement la question suivante" : "The system will automatically ask the next question"}</li>
-              <li>{language === "fr" ? "Durée estimée : 2-3 minutes" : "Estimated time: 2-3 minutes"}</li>
+        <div className="space-y-4">
+          <div className="rounded-lg bg-[#F9F9F9] px-5 py-4">
+            <h3 className="font-bold text-sm text-[#1a1a1a] mb-3">{language === "fr" ? "Comment ça marche" : "How it works"}</h3>
+            <ul className="space-y-2 text-sm text-[#555555]">
+              <li>• {language === "fr" ? "Le système vous posera 9 questions simples" : "The system will ask you 9 simple questions"}</li>
+              <li>• {language === "fr" ? "Parlez naturellement après chaque question" : "Speak naturally after each question"}</li>
+              <li>• {language === "fr" ? "Faites une pause quand vous avez terminé" : "Pause when you're done speaking"}</li>
+              <li>• {language === "fr" ? "Le système posera automatiquement la question suivante" : "The system will automatically ask the next question"}</li>
+              <li>• {language === "fr" ? "Durée estimée : 2-3 minutes" : "Estimated time: 2-3 minutes"}</li>
             </ul>
           </div>
-          <div className="rounded-lg bg-red-900/20 px-3 py-2 text-[11px] text-red-50">
-            <p className="font-semibold">{language === "fr" ? "Prêt·e à commencer" : "Ready to begin"}</p>
-            <p className="mt-1 text-[11px]">{language === "fr" ? "Appuyez sur Démarrer pour autoriser l'audio et commencer." : "Tap Start to enable audio and begin."}</p>
+          <div className="rounded-lg bg-[#FFE5E8] px-5 py-4">
+            <h3 className="font-bold text-sm text-[#E63946] mb-2">{language === "fr" ? "Prêt·e à commencer" : "Ready to begin"}</h3>
+            <p className="text-sm text-[#555555]">{language === "fr" ? "Appuyez sur Démarrer pour autoriser l'audio et commencer." : "Tap Start to enable audio and begin."}</p>
           </div>
-          <div className="flex flex-col gap-2">
-            <button 
-              onClick={startInterview} 
-              className="rounded bg-red-600 px-4 py-2 text-[13px] font-semibold text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-red-950"
-              aria-label={language === "fr" ? "Commencer l'évaluation vocale" : "Begin voice assessment"}
-            >
-              {language === "fr" ? "Commencer" : "Begin"}
-            </button>
-            <div className="text-[10px] text-red-200 text-center">
-              {language === "fr" ? "Vos réponses sont utilisées uniquement pour vous orienter." : "Your responses are used only to provide guidance."}
-            </div>
-            <div className="text-[9px] text-red-300 text-center opacity-70">
-              {language === "fr" ? "Raccourcis: Espace = Écouter, Échap = Arrêter" : "Shortcuts: Space = Listen, Esc = Stop"}
-            </div>
-          </div>
+          <button 
+            onClick={startInterview} 
+            className="w-full rounded-lg bg-[#E63946] px-6 py-3 text-sm font-bold text-white hover:bg-[#d62839] transition-colors"
+            aria-label={language === "fr" ? "Commencer l'évaluation vocale" : "Begin voice assessment"}
+          >
+            {language === "fr" ? "Commencer" : "Begin"}
+          </button>
+          <p className="text-xs text-[#999999] text-center">
+            {language === "fr" ? "Vos réponses sont utilisées uniquement pour vous orienter." : "Your responses are used only to provide guidance."}
+          </p>
         </div>
       ) : (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="rounded-lg bg-red-900/20 px-3 py-2 text-[11px] text-red-50 w-full">
-              <p className="font-semibold">{language === "fr" ? "Question:" : "Question:"}</p>
-              <p className="mt-1">{questions[questionIndex] ? (language === "fr" ? questions[questionIndex].fr : questions[questionIndex].en) : (language === "fr" ? "Collecte terminée." : "Collection complete.")}</p>
+        <div className="space-y-4">
+          <div className="rounded-lg bg-[#F9F9F9] px-5 py-4">
+            <div className="flex items-start justify-between gap-4 mb-3">
+              <p className="text-xs font-bold text-[#555555] uppercase tracking-wide">{language === "fr" ? "Question" : "Question"}</p>
+              <div className={`rounded-full px-3 py-1 text-xs font-bold whitespace-nowrap ${
+                isListening ? 'bg-[#E63946] text-white' : 'bg-white text-[#555555] border border-[#222222]/10'
+              }`}>
+                {isListening ? (language === "fr" ? 'En écoute' : 'Listening') : (language === "fr" ? 'En attente' : 'Waiting')}
+              </div>
             </div>
-            <div className="ml-3 flex flex-col items-end text-[11px]">
-              <div className={`rounded-full px-2 py-1 ${isListening ? 'bg-red-600 text-white' : 'bg-red-900/30 text-red-200'}`}>{isListening ? (language === "fr" ? 'Enregistrement…' : 'Recording…') : (language === "fr" ? 'En attente' : 'Idle')}</div>
-              {isProcessing && <div className="mt-2 animate-pulse rounded px-2 py-1 bg-red-900/50 text-red-100">{language === "fr" ? "Traitement..." : "Processing..."}</div>}
-            </div>
+            <p className="text-base text-[#1a1a1a]">{questions[questionIndex] ? (language === "fr" ? questions[questionIndex].fr : questions[questionIndex].en) : (language === "fr" ? "Collecte terminée." : "Collection complete.")}</p>
           </div>
 
           {transcript && (
-            <div className="rounded-lg bg-red-900/30 px-3 py-2 text-[11px] text-red-50">
-              <p className="font-semibold">{language === "fr" ? "Vous:" : "You:"}</p>
-              <p className="mt-1">{transcript}</p>
+            <div className="rounded-lg bg-[#E3F4F4] px-5 py-4">
+              <p className="text-xs font-bold text-[#008080] mb-2 uppercase tracking-wide">{language === "fr" ? "Votre réponse" : "Your answer"}</p>
+              <p className="text-sm text-[#1a1a1a]">{transcript}</p>
             </div>
           )}
 
           {logEntries.length > 0 && (
-            <div className="rounded-lg bg-red-900/10 px-3 py-2 text-[11px] text-red-200">
-              <p className="font-semibold flex items-center justify-between">
-                <span>{language === "fr" ? "Réponses enregistrées" : "Logged Responses"}</span>
-                <span className="text-[10px] font-normal text-red-300">{logEntries.length} {language === "fr" ? "réponse(s)" : "answer(s)"}</span>
-              </p>
-              <div className="mt-2 flex flex-wrap gap-1">
-                {logEntries.map((e, idx) => (
-                  <div key={e.ts} className="rounded bg-red-900/30 px-2 py-1 text-[10px] text-red-100">
-                    {idx + 1}. ✓
-                  </div>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-[#555555] font-medium">{language === "fr" ? "Progression:" : "Progress:"}</span>
+              <div className="flex gap-1.5">
+                {logEntries.map((e) => (
+                  <div key={e.ts} className="w-2 h-2 rounded-full bg-[#008080]" />
+                ))}
+                {Array.from({ length: questions.length - logEntries.length }).map((_, idx) => (
+                  <div key={`empty-${idx}`} className="w-2 h-2 rounded-full bg-[#222222]/10" />
                 ))}
               </div>
             </div>

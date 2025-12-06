@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Mic, Send, Volume2, Pause, MessageCircle, Sparkles } from "lucide-react";
 import { useSettings } from "../settings-provider";
 import GuideVoiceAgent from "../../components/GuideVoiceAgent";
 import ErrorBoundary from "../../components/ErrorBoundary";
@@ -42,7 +43,8 @@ export default function GuidePage() {
   const { language, countryCode, playbackRate, voicePreference } = useSettings();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [useVoiceMode, setUseVoiceMode] = useState(false);
+  const [isVoiceActive, setIsVoiceActive] = useState(false);
+  const [autoListenAfterResponse, setAutoListenAfterResponse] = useState(true);
 
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -65,6 +67,7 @@ export default function GuidePage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const lastSpokenAssistantRef = useRef<string | null>(null);
+  const autoSendTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Initialize messages on client side only to avoid hydration mismatch
   useEffect(() => {
@@ -157,6 +160,12 @@ export default function GuidePage() {
       audio.onended = () => {
         setIsPlaying(false);
         URL.revokeObjectURL(url);
+        // Auto-resume listening for continuous conversation
+        if (autoListenAfterResponse && isVoiceActive) {
+          setTimeout(() => {
+            handleMicClick();
+          }, 800); // Brief pause before listening again
+        }
       };
 
       await audio
@@ -229,6 +238,7 @@ export default function GuidePage() {
           countryCode,
           mode: "general",
           sessionId, // Pass session ID for emotional journey tracking
+          voiceMode: isVoiceActive, // Request brief responses when in voice mode
         }),
       });
 
@@ -348,6 +358,19 @@ export default function GuidePage() {
         const combined = `${finalTranscript}${interimTranscript}`.trim();
         if (combined) {
           setInput(combined);
+          
+          // Clear previous auto-send timer
+          if (autoSendTimerRef.current) {
+            clearTimeout(autoSendTimerRef.current);
+          }
+          
+          // Auto-send after 1.5 seconds of silence
+          autoSendTimerRef.current = setTimeout(() => {
+            if (combined.trim() && isVoiceActive) {
+              recognition.stop();
+              void sendMessage(combined);
+            }
+          }, 1500);
         }
       };
 
@@ -368,51 +391,59 @@ export default function GuidePage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col bg-zinc-950 px-4 py-6 text-zinc-50">
-      <header className="space-y-2 pb-3">
-        <div className="flex items-center justify-between gap-2">
+    <main className="mx-auto flex min-h-screen max-w-2xl flex-col bg-[#F9F9F9] px-6 py-6">
+      <header className="space-y-3 pb-4">
+        <div className="flex items-center justify-between gap-3">
           <div className="flex-1">
-            <h1 className="text-xl font-semibold">
+            <h1 className="text-2xl font-bold text-stone-900 flex items-center gap-2">
+              <MessageCircle className="w-6 h-6 text-emerald-600" />
               {t(strings.guide.title, language)}
             </h1>
-            <p className="text-xs text-zinc-300">
-              {t(strings.guide.intro, language)}
+            <p className="text-sm text-stone-600 mt-1 flex items-center gap-2">
+              {isVoiceActive 
+                ? (isListening 
+                  ? <><Mic className="w-4 h-4 text-emerald-600 animate-pulse" /> {language === "fr" ? "Je vous écoute..." : "Listening..."}</>
+                  : (isPlaying 
+                    ? <><Volume2 className="w-4 h-4 text-emerald-600" /> {language === "fr" ? "Je réponds..." : "Speaking..."}</>
+                    : <><Pause className="w-4 h-4 text-stone-400" /> {language === "fr" ? "En pause" : "Paused"}</>))
+                : t(strings.guide.intro, language)
+              }
             </p>
           </div>
-          <button
-            onClick={() => setUseVoiceMode(!useVoiceMode)}
-            className={`rounded-lg px-3 py-2 text-[10px] font-bold transition flex-shrink-0 ${
-              useVoiceMode
-                ? "bg-purple-900 text-purple-100"
-                : "border border-zinc-700 bg-zinc-900 text-zinc-300 hover:bg-zinc-800"
-            }`}
-            title={useVoiceMode ? "Voice mode ON" : "Enable voice mode"}
-          >
-            {useVoiceMode ? "🎤" : "📝"}
-          </button>
+          {!isVoiceActive && (
+            <button
+              onClick={() => {
+                setIsVoiceActive(true);
+                setTimeout(() => handleMicClick(), 500);
+              }}
+              className="rounded-full bg-emerald-600 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-700 transition-all flex-shrink-0 shadow-md hover:shadow-lg flex items-center gap-2"
+            >
+              <Mic className="w-4 h-4" />
+              {language === "fr" ? "Parler" : "Start"}
+            </button>
+          )}
         </div>
       </header>
 
-      {useVoiceMode ? (
-        <ErrorBoundary>
-          <GuideVoiceAgent onFallback={() => setUseVoiceMode(false)} />
-        </ErrorBoundary>
-      ) : (
-        <section className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900">
-          <div className="flex items-center justify-between border-b border-zinc-800 px-3 py-2 text-[10px] text-zinc-300">
-            <span>{language === "fr" ? "Conversation" : "Conversation"}</span>
-            <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] text-emerald-300">
+      <ErrorBoundary>
+        <section className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-lg">
+          <div className="flex items-center justify-between border-b border-stone-200 px-4 py-3 bg-stone-50">
+            <span className="text-xs font-medium text-stone-700 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-emerald-600" />
+              {language === "fr" ? "Conversation" : "Conversation"}
+            </span>
+            <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700">
               {loading
                 ? language === "fr"
                   ? "Réflexion…"
                   : "Thinking…"
                 : language === "fr"
-                ? "Mode en ligne"
-                : "Online mode"}
+                ? "En ligne"
+                : "Online"}
             </span>
           </div>
 
-        <div className="flex-1 space-y-3 overflow-y-auto px-3 py-3 text-xs">
+        <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
           {messages.map((m, idx) => {
             const paragraphs = m.content.split(/\n\n+/);
             return (
@@ -425,8 +456,8 @@ export default function GuidePage() {
                 <div
                   className={
                     m.role === "assistant"
-                      ? "max-w-[80%] rounded-2xl rounded-bl-sm bg-zinc-800 px-3 py-2 text-zinc-100"
-                      : "max-w-[80%] rounded-2xl rounded-br-sm bg-emerald-500 px-3 py-2 text-zinc-950"
+                      ? "max-w-[85%] rounded-2xl rounded-tl-sm bg-[#F9F9F9] border border-[#222222]/10 px-4 py-3 text-[#222222] shadow-sm"
+                      : "max-w-[85%] rounded-2xl rounded-tr-sm bg-[#008080] px-4 py-3 text-white shadow-sm"
                   }
                 >
                   {paragraphs.map((para, pIndex) => {
@@ -455,7 +486,7 @@ export default function GuidePage() {
                           );
                           void playAssistantMessage(m.fullContent ?? m.content);
                         }}
-                        className="text-[11px] text-emerald-300"
+                        className="text-[11px] text-[#008080] hover:text-[#006666]"
                       >
                         {language === 'fr' ? 'Lire la suite' : 'Read full'}
                       </button>
@@ -467,13 +498,13 @@ export default function GuidePage() {
           })}
 
           {error && (
-            <div className="rounded-lg border border-red-900 bg-red-950 px-3 py-2 text-[11px] text-red-100">
+            <div className="rounded-xl border border-[#E63946] bg-[#E63946]/10 px-4 py-3 text-sm text-[#E63946]">
               {error}
             </div>
           )}
 
           {crisisNotice && (
-            <div className="rounded-lg border border-red-900 bg-red-950 px-3 py-2 text-xs text-red-100 font-medium">
+            <div className="rounded-xl border border-[#E63946] bg-[#E63946]/10 px-4 py-3 text-sm text-[#E63946] font-medium">
               ⚠️ {crisisNotice}
             </div>
           )}
@@ -490,7 +521,7 @@ export default function GuidePage() {
 
           {suggestions.length > 0 && (
             <div className="mt-2 space-y-1">
-              <p className="text-[10px] font-semibold text-zinc-400">
+              <p className="text-[10px] font-semibold text-[#555555] uppercase tracking-wide">
                 {t(strings.guide.examplesTitle, language)}
               </p>
               <div className="flex flex-wrap gap-2">
@@ -499,7 +530,7 @@ export default function GuidePage() {
                     key={s}
                     type="button"
                     onClick={() => handleSuggestionClick(s)}
-                    className="rounded-full border border-zinc-700 bg-zinc-900 px-3 py-1 text-[10px] text-zinc-100 hover:border-emerald-500"
+                    className="rounded-full border border-[#F4D35E]/50 bg-[#F4D35E]/10 px-3 py-1 text-[10px] text-[#222222] hover:bg-[#F4D35E]/20 hover:border-[#F4D35E]"
                   >
                     {s}
                   </button>
@@ -512,31 +543,28 @@ export default function GuidePage() {
 
         <form
           onSubmit={handleSubmit}
-          className="flex items-end gap-2 border-t border-zinc-800 bg-zinc-950/80 px-3 py-2"
+          className="flex items-end gap-3 border-t border-[#222222]/10 bg-[#F9F9F9] px-4 py-3"
         >
           <button
             type="button"
             onClick={handleMicClick}
-            className={`relative flex h-9 w-9 items-center justify-center rounded-full border px-0.5 text-[11px] text-zinc-200 transition-all ${
-              voicePreference === 'voice'
-                ? isListening
-                  ? 'border-emerald-400 bg-emerald-600/10'
-                  : 'border-emerald-500 bg-emerald-600/5'
-                : 'border-zinc-700 bg-zinc-900'
-            }`}
+            disabled={isPlaying}
+            className={`relative flex h-12 w-12 items-center justify-center rounded-full border-2 transition-all ${
+              isListening
+                ? 'border-[#008080] bg-[#008080] text-white scale-105 shadow-md'
+                : 'border-[#008080] bg-white text-[#008080] hover:bg-[#008080]/10'
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
           >
-            {/* Listening/wavy rings */}
+            {/* Listening pulse animation */}
             {isListening && (
               <>
-                <span className="absolute -inset-1 rounded-full border-2 border-emerald-400/30 animate-ping" />
-                <span className="absolute -inset-2 rounded-full border border-emerald-400/20" />
+                <span className="absolute -inset-2 rounded-full border-2 border-[#008080]/40 animate-ping" />
+                <span className="absolute -inset-3 rounded-full border border-[#008080]/20 animate-pulse" />
               </>
             )}
-            <span className="relative z-10">
-              {isListening ? (language === "fr" ? "Rec" : "Rec") : "Mic"}
-            </span>
+            <Mic className={`relative z-10 w-5 h-5 ${isListening ? 'animate-pulse' : ''}`} />
           </button>
-          <div className="flex-1 rounded-full border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-[11px] text-zinc-100">
+          <div className="flex-1 rounded-full border border-[#222222]/20 bg-white px-3 py-1.5 text-[11px] text-[#222222]">
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -550,13 +578,13 @@ export default function GuidePage() {
                   : "Type your question…"
               }
                 ref={inputRef}
-                className="w-full bg-transparent text-[11px] text-zinc-100 outline-none placeholder:text-zinc-500"
+                className="w-full bg-transparent text-[11px] text-[#222222] outline-none placeholder:text-[#555555]"
             />
           </div>
           <button
             type="submit"
             disabled={loading || !input.trim()}
-            className="flex h-9 items-center justify-center rounded-full bg-emerald-500 px-3 text-[11px] font-semibold text-zinc-950 disabled:opacity-60"
+            className="flex h-9 items-center justify-center rounded-full bg-[#008080] px-3 text-[11px] font-semibold text-white disabled:opacity-60 hover:bg-[#006666]"
           >
             {language === "fr" ? "Envoyer" : "Send"}
           </button>
@@ -571,7 +599,7 @@ export default function GuidePage() {
                 await playAssistantMessage(latestAssistantMessage);
               }
             }}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900 text-[11px] text-zinc-200 disabled:opacity-60"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-[#222222]/20 bg-white text-[11px] text-[#555555] disabled:opacity-60 hover:bg-[#F9F9F9]"
           >
             {voiceLoading
               ? "..."
@@ -585,7 +613,7 @@ export default function GuidePage() {
           </button>
         </form>
       </section>
-      )}
+      </ErrorBoundary>
     </main>
   );
 }

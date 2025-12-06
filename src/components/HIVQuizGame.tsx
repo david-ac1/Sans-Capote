@@ -371,21 +371,21 @@ export default function HIVQuizGame({ language, onComplete }: HIVQuizGameProps) 
 
   if (gameState === 'intro') {
     return (
-      <div className="space-y-4 rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-4 text-xs">
-        <h2 className="text-sm font-semibold text-zinc-100">
+      <div className="space-y-4 rounded-xl border border-[#222222]/10 bg-white px-6 py-6 shadow-sm max-w-2xl">
+        <h2 className="text-xl font-bold text-[#1a1a1a]">
           {language === 'en' ? 'HIV Knowledge Quiz' : 'Quiz de Connaissances VIH'}
         </h2>
-        <p className="text-[11px] text-zinc-300">
+        <p className="text-sm text-[#555555]">
           {language === 'en' 
             ? 'Test your knowledge with 15 questions about HIV, PrEP/PEP, U=U, and more!'
             : 'Testez vos connaissances avec 15 questions sur le VIH, PrEP/PEP, I=I et plus!'}
         </p>
         
-        <div className="space-y-2 rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-3">
-          <h3 className="text-[11px] font-semibold text-emerald-300">
+        <div className="space-y-2 rounded-lg border border-[#008080]/20 bg-[#E3F4F4] px-4 py-4">
+          <h3 className="text-sm font-bold text-[#008080]">
             {language === 'en' ? 'How to Play' : 'Comment Jouer'}
           </h3>
-          <ul className="space-y-1 text-[10px] text-zinc-400">
+          <ul className="space-y-1.5 text-sm text-[#1a1a1a]">
             <li>• {language === 'en' ? 'AI reads each question aloud automatically' : 'L\'IA lit chaque question automatiquement'}</li>
             <li>• {language === 'en' ? 'Click "Speak Answer" and say A, B, C, or D' : 'Cliquez "Parlez" et dites A, B, C ou D'}</li>
             <li>• {language === 'en' ? '30 seconds per question (timer starts after question)' : '30 secondes par question (chrono après lecture)'}</li>
@@ -396,7 +396,7 @@ export default function HIVQuizGame({ language, onComplete }: HIVQuizGameProps) 
 
         <button
           onClick={startGame}
-          className="w-full rounded-lg border border-emerald-700 bg-emerald-900 px-4 py-3 text-[11px] font-semibold text-emerald-100 hover:bg-emerald-800 transition-colors"
+          className="w-full rounded-lg bg-[#008080] px-6 py-3.5 text-sm font-bold text-white hover:bg-[#006666] transition-colors shadow-sm"
         >
           {language === 'en' ? 'Start Quiz →' : 'Commencer le Quiz →'}
         </button>
@@ -414,41 +414,43 @@ export default function HIVQuizGame({ language, onComplete }: HIVQuizGameProps) 
   const explanation = language === 'en' ? currentQuestion.explanationEn : currentQuestion.explanationFr;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 max-w-2xl">
       {/* Progress Bar & Timer */}
-      <div className="rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-3">
+      <div className="rounded-lg border border-[#222222]/10 bg-white px-4 py-4 shadow-sm">
         <div className="mb-2 flex items-center justify-between">
-          <span className="text-[11px] font-semibold text-zinc-300">
+          <span className="text-sm font-semibold text-[#1a1a1a]">
             {language === 'en' ? 'Question' : 'Question'} {currentQuestionIndex + 1}/{questions.length}
           </span>
           <div className="flex items-center gap-2">
             {timerActive && (
-              <span className={`text-[11px] font-bold ${timeLeft <= 10 ? 'text-red-400 animate-pulse' : 'text-zinc-400'}`}>
+              <span className={`text-sm font-bold ${
+                timeLeft <= 10 ? 'text-[#E63946] animate-pulse' : 'text-[#555555]'
+              }`}>
                 ⏱️ {timeLeft}s
               </span>
             )}
-            <span className="text-sm font-bold text-emerald-300">
+            <span className="text-base font-bold text-[#008080]">
               {score} {language === 'en' ? 'pts' : 'pts'}
             </span>
           </div>
         </div>
-        <div className="h-1.5 overflow-hidden rounded-full bg-zinc-800">
+        <div className="h-2 overflow-hidden rounded-full bg-[#E3F4F4]">
           <div 
-            className="h-full bg-emerald-500 transition-all duration-500"
+            className="h-full bg-[#008080] transition-all duration-500"
             style={{ width: `${((currentQuestionIndex + 1) / questions.length) * 100}%` }}
           />
         </div>
       </div>
 
       {/* Lifelines */}
-      <div className="flex gap-2">
+      <div className="flex gap-3">
         <button
           onClick={useAskAI}
           disabled={lifelinesUsed.askAI >= LIFELINES.askAI || gameState === 'answering'}
-          className={`flex-1 rounded-lg border px-3 py-2 text-[10px] font-semibold transition-colors ${
+          className={`flex-1 rounded-lg border-2 px-4 py-3 text-sm font-bold transition-colors ${
             lifelinesUsed.askAI >= LIFELINES.askAI
-              ? 'border-zinc-700 bg-zinc-800 text-zinc-500 cursor-not-allowed'
-              : 'border-yellow-700 bg-yellow-900 text-yellow-100 hover:bg-yellow-800'
+              ? 'border-[#222222]/10 bg-[#F9F9F9] text-[#999999] cursor-not-allowed'
+              : 'border-[#F4D35E] bg-[#FFF9E6] text-[#1a1a1a] hover:bg-[#FFF3D1]'
           }`}
         >
           💡 {language === 'en' ? 'Ask AI' : 'IA'} ({LIFELINES.askAI - lifelinesUsed.askAI})
@@ -456,10 +458,10 @@ export default function HIVQuizGame({ language, onComplete }: HIVQuizGameProps) 
         <button
           onClick={useSkip}
           disabled={lifelinesUsed.skip >= LIFELINES.skip || gameState === 'answering'}
-          className={`flex-1 rounded-lg border px-3 py-2 text-[10px] font-semibold transition-colors ${
+          className={`flex-1 rounded-lg border-2 px-4 py-3 text-sm font-bold transition-colors ${
             lifelinesUsed.skip >= LIFELINES.skip
-              ? 'border-zinc-700 bg-zinc-800 text-zinc-500 cursor-not-allowed'
-              : 'border-blue-700 bg-blue-900 text-blue-100 hover:bg-blue-800'
+              ? 'border-[#222222]/10 bg-[#F9F9F9] text-[#999999] cursor-not-allowed'
+              : 'border-[#008080]/30 bg-[#E3F4F4] text-[#008080] hover:bg-[#D1ECEC]'
           }`}
         >
           ⏭️ {language === 'en' ? 'Skip' : 'Passer'} ({LIFELINES.skip - lifelinesUsed.skip})
@@ -467,22 +469,22 @@ export default function HIVQuizGame({ language, onComplete }: HIVQuizGameProps) 
       </div>
 
       {/* Question Card */}
-      <div className="space-y-4 rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-4">
+      <div className="space-y-4 rounded-xl border border-[#222222]/10 bg-white px-5 py-5 shadow-sm">
         <div className="flex items-start gap-3">
-          <div className={`rounded-lg px-2 py-1 text-[10px] font-bold ${
-            currentQuestion.difficulty === 'easy' ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' :
-            currentQuestion.difficulty === 'medium' ? 'bg-yellow-950 text-yellow-300 border border-yellow-800' :
-            'bg-red-950 text-red-300 border border-red-800'
+          <div className={`rounded-lg px-2.5 py-1 text-xs font-bold ${
+            currentQuestion.difficulty === 'easy' ? 'bg-[#E3F4F4] text-[#008080] border border-[#008080]/20' :
+            currentQuestion.difficulty === 'medium' ? 'bg-[#FFF9E6] text-[#1a1a1a] border border-[#F4D35E]/30' :
+            'bg-[#FFE5E8] text-[#E63946] border border-[#E63946]/30'
           }`}>
             {currentQuestion.points}
           </div>
-          <p className="flex-1 text-sm font-semibold text-zinc-100">{questionText}</p>
+          <p className="flex-1 text-base font-semibold text-[#1a1a1a] leading-relaxed">{questionText}</p>
         </div>
 
         {/* Status indicator */}
         {isSpeaking && (
-          <div className="rounded-lg border border-blue-800 bg-blue-950 px-3 py-2 text-center">
-            <p className="text-[11px] font-semibold text-blue-300">
+          <div className="rounded-lg border border-[#008080]/20 bg-[#E3F4F4] px-4 py-3 text-center">
+            <p className="text-sm font-semibold text-[#008080]">
               🔊 {language === 'en' ? 'AI is reading the question...' : 'L\'IA lit la question...'}
             </p>
           </div>
@@ -490,9 +492,9 @@ export default function HIVQuizGame({ language, onComplete }: HIVQuizGameProps) 
 
         {/* AI Hint */}
         {aiHint && (
-          <div className="rounded-lg border border-yellow-800 bg-yellow-950 px-3 py-2">
-            <p className="text-[10px] font-semibold text-yellow-300">💡 {language === 'en' ? 'AI Hint:' : 'Indice IA:'}</p>
-            <p className="text-[11px] text-zinc-300">{aiHint}</p>
+          <div className="rounded-lg border border-[#F4D35E]/30 bg-[#FFF9E6] px-4 py-3">
+            <p className="text-sm font-bold text-[#1a1a1a]">💡 {language === 'en' ? 'AI Hint:' : 'Indice IA:'}</p>
+            <p className="text-sm text-[#555555] mt-1">{aiHint}</p>
           </div>
         )}
 
@@ -504,15 +506,15 @@ export default function HIVQuizGame({ language, onComplete }: HIVQuizGameProps) 
             const showResult = gameState === 'answering';
             const isCorrectAnswer = key === currentQuestion.correctAnswer;
 
-            let bgColor = 'border-zinc-700 bg-zinc-950 hover:bg-zinc-900';
+            let bgColor = 'border-[#222222]/10 bg-[#F9F9F9] hover:bg-[#F0F0F0]';
             if (showResult) {
               if (isCorrectAnswer) {
-                bgColor = 'border-emerald-800 bg-emerald-950';
+                bgColor = 'border-[#008080] bg-[#E3F4F4]';
               } else if (isSelected && !isCorrect) {
-                bgColor = 'border-red-800 bg-red-950';
+                bgColor = 'border-[#E63946] bg-[#FFE5E8]';
               }
             } else if (isSelected) {
-              bgColor = 'border-zinc-600 bg-zinc-900';
+              bgColor = 'border-[#008080] bg-[#E3F4F4]';
             }
 
             return (
@@ -520,12 +522,12 @@ export default function HIVQuizGame({ language, onComplete }: HIVQuizGameProps) 
                 key={key}
                 onClick={() => handleAnswerSelect(key as 'A' | 'B' | 'C' | 'D')}
                 disabled={gameState === 'answering'}
-                className={`rounded-lg border px-3 py-2 text-left text-[11px] transition-colors ${bgColor} ${
+                className={`rounded-lg border-2 px-4 py-3 text-left text-sm transition-colors ${bgColor} ${
                   gameState === 'answering' ? 'cursor-not-allowed' : 'cursor-pointer'
                 }`}
               >
-                <span className="mr-2 font-semibold text-zinc-400">{key}.</span>
-                <span className="text-zinc-200">{optionText}</span>
+                <span className="mr-2 font-bold text-[#008080]">{key}.</span>
+                <span className="text-[#1a1a1a]">{optionText}</span>
               </button>
             );
           })}
@@ -537,12 +539,12 @@ export default function HIVQuizGame({ language, onComplete }: HIVQuizGameProps) 
             <button
               onClick={startListening}
               disabled={isListening || isSpeaking}
-              className={`w-full rounded-lg border px-4 py-4 text-sm font-bold transition-all ${
+              className={`w-full rounded-lg border-2 px-5 py-4 text-sm font-bold transition-all ${
                 isListening
-                  ? 'animate-pulse border-red-700 bg-red-900 text-red-100 shadow-lg shadow-red-900/50'
+                  ? 'animate-pulse border-[#E63946] bg-[#FFE5E8] text-[#E63946] shadow-lg'
                   : isSpeaking
-                  ? 'border-zinc-700 bg-zinc-800 text-zinc-500 cursor-not-allowed'
-                  : 'border-emerald-700 bg-emerald-900 text-emerald-100 hover:bg-emerald-800 hover:shadow-lg hover:shadow-emerald-900/50'
+                  ? 'border-[#222222]/10 bg-[#F9F9F9] text-[#999999] cursor-not-allowed'
+                  : 'border-[#008080] bg-[#008080] text-white hover:bg-[#006666] shadow-sm'
               }`}
             >
               {isListening 
@@ -553,11 +555,11 @@ export default function HIVQuizGame({ language, onComplete }: HIVQuizGameProps) 
               }
             </button>
             {transcript && (
-              <p className="text-center text-[10px] text-zinc-400">
-                {language === 'en' ? 'You said:' : 'Vous avez dit:'} <span className="font-semibold text-zinc-300">{transcript}</span>
+              <p className="text-center text-sm text-[#555555]">
+                {language === 'en' ? 'You said:' : 'Vous avez dit:'} <span className="font-semibold text-[#008080]">{transcript}</span>
               </p>
             )}
-            <p className="text-center text-[9px] text-zinc-500">
+            <p className="text-center text-xs text-[#999999]">
               {language === 'en' ? 'Say "A", "B", "C", or "D"' : 'Dites "A", "B", "C" ou "D"'}
             </p>
           </div>
@@ -565,22 +567,22 @@ export default function HIVQuizGame({ language, onComplete }: HIVQuizGameProps) 
 
         {/* Result & Explanation */}
         {gameState === 'answering' && (
-          <div className="space-y-2">
-            <div className={`rounded-lg border px-3 py-3 ${
-              isCorrect ? 'border-emerald-800 bg-emerald-950' : 'border-red-800 bg-red-950'
+          <div className="space-y-3">
+            <div className={`rounded-lg border-2 px-4 py-4 ${
+              isCorrect ? 'border-[#008080] bg-[#E3F4F4]' : 'border-[#E63946] bg-[#FFE5E8]'
             }`}>
-              <p className="mb-2 text-[11px] font-semibold">
+              <p className="mb-2 text-sm font-bold">
                 {isCorrect 
                   ? `${language === 'en' ? '✅ Correct!' : '✅ Correct!'} +${currentQuestion.points} ${language === 'en' ? 'points' : 'points'}`
                   : `${language === 'en' ? '❌ Incorrect' : '❌ Incorrect'}`
                 }
               </p>
-              <p className="text-[10px] text-zinc-300">{explanation}</p>
+              <p className="text-sm text-[#1a1a1a]">{explanation}</p>
             </div>
 
             <button
               onClick={nextQuestion}
-              className="w-full rounded-lg border border-emerald-700 bg-emerald-900 px-4 py-3 text-[11px] font-semibold text-emerald-100 hover:bg-emerald-800 transition-colors"
+              className="w-full rounded-lg bg-[#008080] px-5 py-3.5 text-sm font-bold text-white hover:bg-[#006666] transition-colors shadow-sm"
             >
               {currentQuestionIndex + 1 < questions.length
                 ? `${language === 'en' ? 'Next Question →' : 'Question Suivante →'}`
