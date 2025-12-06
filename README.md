@@ -20,6 +20,7 @@
 > **Note for Reviewers:** We acknowledge the dual meaning and welcome feedback on whether a different name (e.g., "Open Health," "Clear Talk," "Sans Tabou") would better serve our mission while maintaining cultural sensitivity.
 
 ## 🌍 What is Sans-Capote?
+<img width="1916" height="942" alt="Screenshot 2025-12-07 001028" src="https://github.com/user-attachments/assets/d7cbc504-6cea-4a50-97ca-b1d01b1289c8" />
 
 Combining **Google Gemini** for intelligent conversation, **ElevenLabs** for natural voice output, and **Supabase** for community ratings, Sans-Capote provides accessible, private, and culturally-sensitive health guidance via voice or text—even offline.
 
@@ -86,6 +87,7 @@ Open [http://localhost:3000](http://localhost:3000) and navigate to **Crisis** o
 3. Answer 9 quick questions using your voice
 4. Watch live captions appear as the system speaks
 5. Receive personalized PEP/PrEP guidance with local resources
+<img width="1918" height="826" alt="Screenshot 2025-12-07 001137" src="https://github.com/user-attachments/assets/3d11928d-a3cf-47f1-b65b-40409193a15d" />
 
 ### Service Navigator (Map Mode)
 1. Navigate to `/navigator` page
@@ -103,6 +105,7 @@ Open [http://localhost:3000](http://localhost:3000) and navigate to **Crisis** o
 3. Hear an AI response read aloud automatically in your language
 4. Use **Read Full** for longer content
 5. Try keyboard shortcuts (Space/Esc) for hands-free operation
+<img width="1914" height="827" alt="Screenshot 2025-12-07 001054" src="https://github.com/user-attachments/assets/994e22a1-8431-4e4f-b199-e7fe0d10f9f6" />
 
 ### Sample Questions to Try
 - "What is PrEP and how can I get it in Nigeria?"
@@ -110,6 +113,7 @@ Open [http://localhost:3000](http://localhost:3000) and navigate to **Crisis** o
 - "How do I talk to someone about STI testing?"
 - "I'm worried about stigma at the clinic"
 - "Are there judgement-free services near me?"
+![Uploading Screenshot 2025-12-07 001115.png…]()
 
 ### Community Features to Test
 - Submit a rating for any service (friendliness, privacy, wait time)
