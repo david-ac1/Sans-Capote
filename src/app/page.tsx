@@ -16,7 +16,7 @@ export default function Home() {
             SANS CAPOTE
           </h1>
           
-          <p className="text-lg sm:text-xl text-[#555555] max-w-xl mx-auto">
+          <p className="text-lg sm:text-xl text-[#1a1a1a] font-bold max-w-xl mx-auto">
             {t(strings.home.subtitle, language)}
           </p>
         </header>
