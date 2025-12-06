@@ -64,7 +64,7 @@ function buildDiscoveryPrompt(country: string, filters: AIDiscoveryFilters, lang
   if (filters.telehealthAvailable) filterDescriptions.push("telehealth/virtual consultation options");
   if (filters.lowCost) filterDescriptions.push("low-cost or sliding scale pricing");
 
-  const criteria = filterDescriptions.length > 0 
+  const _criteria = filterDescriptions.length > 0 
     ? `with a focus on: ${filterDescriptions.join(", ")}`
     : "providing comprehensive sexual health services";
 

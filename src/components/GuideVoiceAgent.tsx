@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useSettings } from "../app/settings-provider";
-import { getHealthGuidePrompt, getDiscreetModePrompt } from "../lib/agentPrompts";
+// Removed unused imports
 
 interface GuideVoiceAgentProps {
   onFallback: () => void; // Switch to text if voice unavailable

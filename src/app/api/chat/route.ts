@@ -46,7 +46,7 @@ ${JSON.stringify({ resources }, null, 2)}`;
 
 export async function POST(req: Request) {
   try {
-    const { messages, countryCode, sessionId, language = 'en', voiceMode = false } = await req.json();
+    const { messages, countryCode: _countryCode, sessionId, language = 'en', voiceMode = false } = await req.json();
     
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json(

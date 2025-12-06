@@ -1225,7 +1225,7 @@ export function getRandomQuestions(count: number = 15, excludeIds: string[] = []
   const categories: QuizCategory[] = ['basics', 'prep_pep', 'transmission', 'stigma', 'uu_treatment', 'prevention'];
   const questionsPerCategory = Math.floor(count / categories.length);
   
-  let selected: QuizQuestion[] = [];
+  const selected: QuizQuestion[] = [];
   
   // Get questions from each category
   categories.forEach(cat => {

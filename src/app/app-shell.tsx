@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ReactNode } from "react";
-import { Home, MessageCircle, Map, BookOpen, AlertCircle, Settings, ChevronLeft } from "lucide-react";
+import { Home, MessageCircle, Map, BookOpen, AlertCircle, ChevronLeft } from "lucide-react";
 import { useSettings } from "./settings-provider";
 import { strings, t } from "../i18n/strings";
 
@@ -35,7 +35,7 @@ function getSectionTitle(pathname: string, discreetMode: boolean, language: stri
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname() || "/";
   const router = useRouter();
-  const { language, countryCode, discreetMode } = useSettings();
+  const { language, countryCode: _countryCode, discreetMode } = useSettings();
 
   const sectionTitle = getSectionTitle(pathname, discreetMode, language);
   const showBack = pathname !== "/";

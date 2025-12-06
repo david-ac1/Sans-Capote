@@ -82,7 +82,7 @@ const POSITIVE_WORDS = [
 /**
  * Analyze text for emotional content and stress indicators
  */
-export function analyzeSentiment(text: string, language: 'en' | 'fr' = 'en'): SentimentAnalysis {
+export function analyzeSentiment(text: string, _language: 'en' | 'fr' = 'en'): SentimentAnalysis {
   const lowerText = text.toLowerCase();
   const words = lowerText.split(/\s+/);
   
