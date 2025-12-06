@@ -177,14 +177,34 @@ export default function CrisisVoiceAgent({ onComplete }: CrisisVoiceAgentProps) 
           audio.src = url;
           audio.load();
           
-          audio.play().catch(err => {
-            console.warn("Audio play blocked or failed:", err.name, err.message);
-            trackError(err, {
-              context: 'audio_play',
-              questionIndex,
-              language,
-            });
-            completeOnce();
+          // Safari autoplay policy: try unmuted first, fallback to muted, then show message
+          audio.play().catch(async (err) => {
+            console.warn("Audio play blocked:", err.name);
+            
+            // Try muted autoplay (Safari allows this)
+            try {
+              audio.muted = true;
+              await audio.play();
+              
+              // Show message to unmute
+              const unmute = confirm(
+                language === 'fr'
+                  ? 'Votre navigateur bloque l\'audio. Cliquez OK pour activer le son.'
+                  : 'Your browser blocked audio. Click OK to enable sound.'
+              );
+              
+              if (unmute) {
+                audio.muted = false;
+              }
+            } catch (mutedErr) {
+              console.warn("Muted play also blocked:", mutedErr);
+              trackError(err, {
+                context: 'audio_play_safari_blocked',
+                questionIndex,
+                language,
+              });
+              completeOnce();
+            }
           });
         })
         .catch(err => {

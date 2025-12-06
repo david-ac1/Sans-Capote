@@ -8,7 +8,7 @@
 
 **A stigma-free, voice-driven AI companion for sexual health and HIV prevention in African contexts.**
 
-🎗️ **World AIDS Day Contribution (December 1st)**  
+🎗️🧣 **World AIDS Day Contribution (December 1st)**  
 *This project is dedicated to World AIDS Day 2025, continuing the global mission to end HIV stigma, expand access to prevention and treatment, and ensure no one is left behind in the fight against AIDS.*
 
 </div>
@@ -128,11 +128,36 @@ Open [http://localhost:3000](http://localhost:3000) and navigate to **Crisis** o
 - In sub-Saharan Africa, **stigma and privacy concerns** prevent people from seeking health information
 - Low-literacy users, poor internet, and misinformation make voice-based education critical
 
+### 🎯 Why These Pilot Countries?
+
+Our initial focus on **Nigeria, South Africa, Kenya, Uganda, Rwanda, and Ghana** is strategic and data-driven:
+
+**High HIV Burden:**
+- **South Africa:** 7.5M people living with HIV—the world's largest HIV epidemic
+- **Nigeria:** 1.9M cases with significant gaps in prevention and treatment access
+- **Kenya & Uganda:** Eastern Africa hotspots with 1.3M+ cases combined
+- Combined, these countries account for **~40% of global HIV burden** yet face critical resource constraints
+
+**Misinformation Crisis:**
+- Widespread myths about HIV transmission (sharing utensils, mosquito bites, witchcraft)
+- Stigma-driven beliefs that prevent testing and treatment adherence
+- Limited access to accurate, culturally-sensitive sexual health education
+- Language barriers (English/French) further isolate vulnerable populations
+
+**Digital Opportunity:**
+- 60%+ mobile penetration but limited smartphone adoption in rural areas
+- Voice-first interfaces bypass literacy barriers and data costs
+- High trust in SMS and voice communication over apps
+- Growing internet access creates critical window for intervention
+
+Sans-Capote addresses these challenges by providing **accurate, stigma-free information** in users' preferred language, accessible via voice or text, with locally-relevant resources and community-verified service ratings.
+
 **Sans-Capote's Solution:**
 - **Voice-Driven:** For users with limited literacy or privacy concerns
 - **Offline-Capable:** Works with spotty connectivity (PWA + local data)
 - **Culturally Sensitive:** Country-specific guidance, bilingual (EN/FR), non-judgmental
 - **AI-Powered:** Gemini provides intelligent, conversational responses (not scripts)
+- **Community-Verified:** Supabase-powered ratings help users find judgement-free services
 
 ---
 

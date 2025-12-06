@@ -78,7 +78,28 @@ export default function GuideVoiceAgent({ onFallback }: GuideVoiceAgentProps) {
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = new Audio(url);
-      await a.play();
+      
+      a.onended = () => URL.revokeObjectURL(url);
+      a.onerror = () => URL.revokeObjectURL(url);
+      
+      // Safari autoplay policy: try unmuted, fallback to muted with prompt
+      try {
+        await a.play();
+      } catch (err) {
+        console.warn('Audio blocked by browser:', err);
+        try {
+          a.muted = true;
+          await a.play();
+          const unmute = confirm(
+            language === 'fr'
+              ? 'Votre navigateur bloque l\'audio. Cliquez OK pour activer le son.'
+              : 'Your browser blocked audio. Click OK to enable sound.'
+          );
+          if (unmute) a.muted = false;
+        } catch {
+          URL.revokeObjectURL(url);
+        }
+      }
     } catch (e) {
       console.error("TTS error:", e);
     }

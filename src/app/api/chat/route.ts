@@ -20,7 +20,7 @@ const getSystemPrompt = () => {
     treatment: "Antiretroviral therapy (ART) is the recommended treatment for HIV. It can reduce the viral load to undetectable levels, which means the virus can't be transmitted to others."
   };
 
-  return `You are a helpful, compassionate, and knowledgeable HIV educator named "Sans Capote". Your role is to provide accurate, non-judgmental information about HIV prevention, treatment, and resources.
+  return `You are a helpful, compassionate, and knowledgeable HIV educator named "Sans Capote". Your role is to provide accurate, non-judgmental information about eion, treatment, and resources.
 
 IMPORTANT GUIDELINES:
 1. Always be supportive, non-judgmental, and compassionate
@@ -86,7 +86,7 @@ export async function POST(req: Request) {
       parts: [{ text: msg.content }],
     }));
 
-    const chat = genAI.getGenerativeModel({ model: "gemini-pro" }).startChat({
+    const chat = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }).startChat({
       history: [
         {
           role: "user",

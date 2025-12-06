@@ -220,7 +220,27 @@ export default function HIVQuizGame({ language, onComplete }: HIVQuizGameProps) 
           audioRef.current = null;
           URL.revokeObjectURL(audioUrl);
         };
-        await audio.play();
+        
+        // Safari autoplay policy: try unmuted, fallback to muted with prompt
+        try {
+          await audio.play();
+        } catch (err) {
+          console.warn('Audio blocked by browser:', err);
+          try {
+            audio.muted = true;
+            await audio.play();
+            const unmute = confirm(
+              language === 'en'
+                ? 'Your browser blocked audio. Click OK to enable sound.'
+                : 'Votre navigateur bloque l\'audio. Cliquez OK pour activer le son.'
+            );
+            if (unmute) audio.muted = false;
+          } catch {
+            setIsSpeaking(false);
+            audioRef.current = null;
+            URL.revokeObjectURL(audioUrl);
+          }
+        }
       } else {
         console.error('TTS API error:', await response.text());
         setIsSpeaking(false);
