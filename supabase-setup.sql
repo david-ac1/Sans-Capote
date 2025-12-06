@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS service_ratings (
   friendliness INTEGER NOT NULL CHECK (friendliness >= 1 AND friendliness <= 5),
   privacy INTEGER NOT NULL CHECK (privacy >= 1 AND privacy <= 5),
   wait_time INTEGER NOT NULL CHECK (wait_time >= 1 AND wait_time <= 5),
+  inclusive_care INTEGER NOT NULL CHECK (inclusive_care >= 1 AND inclusive_care <= 5),
   judgement_free BOOLEAN NOT NULL DEFAULT true,
   comment TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -49,6 +50,7 @@ SELECT
   ROUND(AVG(friendliness)::numeric, 2) as avg_friendliness,
   ROUND(AVG(privacy)::numeric, 2) as avg_privacy,
   ROUND(AVG(wait_time)::numeric, 2) as avg_wait_time,
+  ROUND(AVG(inclusive_care)::numeric, 2) as avg_inclusive_care,
   ROUND((COUNT(*) FILTER (WHERE judgement_free = true)::numeric / COUNT(*)::numeric * 100), 1) as judgement_free_percentage,
   MAX(created_at) as latest_rating_at
 FROM service_ratings
@@ -58,13 +60,14 @@ GROUP BY service_id;
 GRANT SELECT ON service_rating_aggregates TO anon, authenticated;
 
 -- Optional: Add sample data for testing
--- INSERT INTO service_ratings (service_id, friendliness, privacy, wait_time, judgement_free, comment) VALUES
--- ('ng_ahf_lagos', 5, 5, 4, true, 'Very welcoming staff, quick service!'),
--- ('ng_ahf_lagos', 4, 5, 3, true, 'Great privacy, but had to wait a bit'),
--- ('za_tb_hiv_cape_town', 5, 5, 5, true, 'Excellent service, highly recommend');
+-- INSERT INTO service_ratings (service_id, friendliness, privacy, wait_time, inclusive_care, judgement_free, comment) VALUES
+-- ('ng_ahf_lagos', 5, 5, 4, 5, true, 'Very welcoming staff, quick service!'),
+-- ('ng_ahf_lagos', 4, 5, 3, 5, true, 'Great privacy, but had to wait a bit'),
+-- ('za_tb_hiv_cape_town', 5, 5, 5, 5, true, 'Excellent service, highly recommend');
 
 COMMENT ON TABLE service_ratings IS 'Community ratings for HIV/health services across Africa';
 COMMENT ON COLUMN service_ratings.friendliness IS 'Staff friendliness rating (1-5 stars)';
 COMMENT ON COLUMN service_ratings.privacy IS 'Privacy and confidentiality rating (1-5 stars)';
 COMMENT ON COLUMN service_ratings.wait_time IS 'Wait time rating (1-5 stars, 5=very fast)';
+COMMENT ON COLUMN service_ratings.inclusive_care IS 'Inclusive care for all identities (coded language for LGBTQIA+ safety)';
 COMMENT ON COLUMN service_ratings.judgement_free IS 'Whether the service felt judgement-free';

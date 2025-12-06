@@ -17,6 +17,7 @@ interface UserRating {
   privacy: number;
   waitTime: number;
   judgementFree: boolean;
+  inclusiveCare: number; // Safe alternative to "LGBTQIA+ friendly"
   comment?: string;
 }
 
@@ -31,17 +32,18 @@ const StarRating = ({
   label: string;
 }) => (
   <div className="space-y-1">
-    <label className="text-sm font-semibold text-zinc-800">{label}</label>
-    <div className="flex gap-1">
+    <label className="text-sm font-bold text-zinc-900">{label}</label>
+    <div className="flex gap-2 bg-white p-2 rounded-lg border-2 border-zinc-300">
       {[1, 2, 3, 4, 5].map((star) => (
         <button
           key={star}
           type="button"
           onClick={() => onChange(star)}
-          className="text-3xl focus:outline-none transition-transform hover:scale-110 focus:ring-2 focus:ring-emerald-500 rounded p-1"
+          className="text-4xl focus:outline-none transition-transform hover:scale-125 focus:ring-2 focus:ring-emerald-500 rounded"
           aria-label={`${star} star${star > 1 ? 's' : ''}`}
+          style={{ filter: star <= value ? 'none' : 'grayscale(100%) brightness(0.4)' }}
         >
-          {star <= value ? '⭐' : '☆'}
+          {star <= value ? '⭐' : '⭐'}
         </button>
       ))}
     </div>
@@ -61,6 +63,7 @@ export default function ServiceDetailsPanel({
     privacy: 0,
     waitTime: 0,
     judgementFree: true,
+    inclusiveCare: 0,
     comment: '',
   });
   const [communityRatings, setCommunityRatings] = useState<ServiceRatingAggregate | null>(null);
@@ -127,6 +130,7 @@ export default function ServiceDetailsPanel({
       friendliness: userRating.friendliness,
       privacy: userRating.privacy,
       wait_time: userRating.waitTime,
+      inclusive_care: userRating.inclusiveCare,
       judgement_free: userRating.judgementFree,
       comment: userRating.comment || undefined,
     });
@@ -150,6 +154,7 @@ export default function ServiceDetailsPanel({
         friendliness: 0,
         privacy: 0,
         waitTime: 0,
+        inclusiveCare: 0,
         judgementFree: true,
         comment: '',
       });
@@ -483,6 +488,13 @@ export default function ServiceDetailsPanel({
                   <span className="text-xs text-zinc-500">/5</span>
                 </div>
               </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-zinc-700">{language === 'fr' ? 'Soins inclusifs' : 'Inclusive Care'}</span>
+                <div className="flex items-center gap-1">
+                  <span className="font-semibold text-zinc-900">{communityRatings.avg_inclusive_care.toFixed(1)}</span>
+                  <span className="text-xs text-zinc-500">/5</span>
+                </div>
+              </div>
               <div className="flex items-center justify-between text-sm pt-2 border-t border-zinc-200">
                 <span className="text-zinc-700">{language === 'fr' ? 'Sans jugement' : 'Judgement-free'}</span>
                 <span className="font-semibold text-emerald-600">
@@ -530,7 +542,10 @@ export default function ServiceDetailsPanel({
           )}
 
           {showRatingForm ? (
-            <div className="bg-gradient-to-br from-emerald-50 to-white border-2 border-emerald-200 rounded-lg p-4 space-y-4">
+            <div className="bg-gradient-to-br from-blue-50 via-emerald-50 to-white border-4 border-emerald-400 rounded-xl p-5 space-y-5 shadow-lg">
+              <h3 className="text-lg font-bold text-zinc-900 mb-3">
+                ⭐ {language === 'fr' ? 'Évaluez ce service' : 'Rate This Service'}
+              </h3>
               <StarRating
                 value={userRating.friendliness}
                 onChange={(v) => setUserRating({ ...userRating, friendliness: v })}
@@ -546,6 +561,11 @@ export default function ServiceDetailsPanel({
                 onChange={(v) => setUserRating({ ...userRating, waitTime: v })}
                 label={language === 'fr' ? 'Temps d\'attente' : 'Wait Time'}
               />
+              <StarRating
+                value={userRating.inclusiveCare}
+                onChange={(v) => setUserRating({ ...userRating, inclusiveCare: v })}
+                label={language === 'fr' ? 'Soins inclusifs' : 'Inclusive Care'}
+              />
               <div className="bg-white p-3 rounded-lg border-2 border-zinc-300">
                 <label className="flex items-center gap-2 text-sm font-semibold text-zinc-800 cursor-pointer">
                   <input
@@ -559,21 +579,22 @@ export default function ServiceDetailsPanel({
                 </label>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-zinc-800 block">
+                <label className="text-sm font-bold text-zinc-900 block">
                   💬 {language === 'fr' ? 'Commentaire (optionnel)' : 'Comment (optional)'}
                 </label>
                 <textarea
                   value={userRating.comment}
                   onChange={(e) => setUserRating({ ...userRating, comment: e.target.value })}
                   placeholder={language === 'fr' ? 'Partagez votre expérience...' : 'Share your experience...'}
-                  className="w-full px-3 py-2 border-2 border-zinc-300 rounded-lg text-sm resize-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white"
+                  className="w-full px-4 py-3 border-2 border-zinc-400 rounded-lg text-base resize-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-zinc-900 placeholder-zinc-400"
+                  style={{ color: '#18181b', fontWeight: '500' }}
                   rows={3}
                   maxLength={500}
                 />
               </div>
               <button
                 onClick={handleSubmitRating}
-                disabled={userRating.friendliness === 0 || userRating.privacy === 0 || userRating.waitTime === 0 || isSubmitting}
+                disabled={userRating.friendliness === 0 || userRating.privacy === 0 || userRating.waitTime === 0 || userRating.inclusiveCare === 0 || isSubmitting}
                 className="w-full bg-emerald-600 text-white py-2 rounded-lg font-medium hover:bg-emerald-700 disabled:bg-zinc-300 disabled:cursor-not-allowed transition-colors"
               >
                 {isSubmitting 

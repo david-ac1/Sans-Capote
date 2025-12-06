@@ -32,9 +32,10 @@ export const isSupabaseConfigured = () => isConfigured;
 export interface ServiceRating {
   id?: string;
   service_id: string;
-  friendliness: number; // 1-5
-  privacy: number; // 1-5
-  wait_time: number; // 1-5
+  friendliness: number;
+  privacy: number;
+  wait_time: number;
+  inclusive_care: number;
   judgement_free: boolean;
   comment?: string;
   created_at?: string;
@@ -45,6 +46,7 @@ export interface ServiceRatingAggregate {
   avg_friendliness: number;
   avg_privacy: number;
   avg_wait_time: number;
+  avg_inclusive_care: number;
   judgement_free_percentage: number;
   total_ratings: number;
 }
@@ -104,6 +106,7 @@ export async function getServiceRatings(serviceId: string): Promise<ServiceRatin
     const sumFriendliness = data.reduce((sum, r) => sum + r.friendliness, 0);
     const sumPrivacy = data.reduce((sum, r) => sum + r.privacy, 0);
     const sumWaitTime = data.reduce((sum, r) => sum + r.wait_time, 0);
+    const sumInclusiveCare = data.reduce((sum, r) => sum + r.inclusive_care, 0);
     const judgementFreeCount = data.filter(r => r.judgement_free).length;
 
     return {
@@ -111,6 +114,7 @@ export async function getServiceRatings(serviceId: string): Promise<ServiceRatin
       avg_friendliness: sumFriendliness / total,
       avg_privacy: sumPrivacy / total,
       avg_wait_time: sumWaitTime / total,
+      avg_inclusive_care: sumInclusiveCare / total,
       judgement_free_percentage: (judgementFreeCount / total) * 100,
       total_ratings: total,
     };
