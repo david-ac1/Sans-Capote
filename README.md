@@ -9,7 +9,7 @@
 **A stigma-free, voice-driven AI companion for sexual health and HIV prevention in African contexts.**
 
 🎗️ **World AIDS Day Contribution (December 1st)**  
-*This project is dedicated to World AIDS Day 2024, continuing the global mission to end HIV stigma, expand access to prevention and treatment, and ensure no one is left behind in the fight against AIDS.*
+*This project is dedicated to World AIDS Day 2025, continuing the global mission to end HIV stigma, expand access to prevention and treatment, and ensure no one is left behind in the fight against AIDS.*
 
 </div>
 
