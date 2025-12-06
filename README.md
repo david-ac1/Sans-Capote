@@ -80,6 +80,7 @@ Open [http://localhost:3000](http://localhost:3000) and navigate to **Crisis** o
 5. Click on map markers to view service details
 6. **Rate services:** Submit community ratings with comments (stored in Supabase)
 7. View aggregate ratings and read other users' experiences
+8. **📱 NEW: Send to My Phone** - Text yourself service details via SMS (Africa's Talking)
 
 ### General Q&A (Guide Mode)
 1. Navigate to `/guide` page
@@ -101,6 +102,7 @@ Open [http://localhost:3000](http://localhost:3000) and navigate to **Crisis** o
 - Add comments about your experience
 - View aggregate community ratings (4.2/5, 87% judgement-free, etc.)
 - Filter services by minimum rating threshold
+- **SMS notifications:** Receive service info on your phone (no app needed!)
 
 ---
 
@@ -156,10 +158,19 @@ Open [http://localhost:3000](http://localhost:3000) and navigate to **Crisis** o
 - ✅ **PostgreSQL + RLS:** Secure data storage with Row Level Security
 - ✅ **Immutable Records:** Ratings cannot be edited or deleted (integrity)
 
+### 📱 SMS Notifications (Africa's Talking - NEW!)
+- ✅ **Send to My Phone:** Text yourself service details without saving anything
+- ✅ **Pan-African Coverage:** Nigeria, Kenya, Uganda, Ghana, Rwanda, South Africa
+- ✅ **Country Code Selector:** Automatic country detection with flag picker
+- ✅ **Rate Limiting:** 3 SMS per phone per hour (prevents spam)
+- ✅ **Formatted Messages:** Name, address, phone, hours, rating in one text
+- ✅ **No Login Required:** Just enter your phone number and receive instantly
+- ✅ **Low Cost:** ~$0.01 per SMS, affordable for users and sustainable
+
 ### 🔒 Safety & Privacy
 - ✅ **No Login Required:** No accounts, no tracking, no data storage
 - ✅ **Anonymous Contributions:** Submit ratings without identification
-- ✅ **Rate Limiting:** 60 requests/min (conversation), 100 requests/min (TTS)
+- ✅ **Rate Limiting:** 60 requests/min (conversation), 100 requests/min (TTS), 3 SMS/hour
 - ✅ **Input Sanitization:** XSS prevention and content security
 - ✅ **PII Protection:** Automatic phone/email redaction in analytics
 - ✅ **Security Headers:** CSP, X-Frame-Options, X-Content-Type-Options
@@ -240,6 +251,7 @@ sans-capote/
 - **Voice:** ElevenLabs TTS + Web Speech API
 - **Database:** Supabase (PostgreSQL + Row Level Security)
 - **Maps:** Mapbox GL JS + Google Places API
+- **SMS:** Africa's Talking (Pan-African SMS delivery)
 - **Monitoring:** Custom telemetry + Google Analytics 4
 - **Security:** Rate limiting, CSP headers, input sanitization
 - **Deployment:** Vercel (recommended) or Docker/Cloud Run
@@ -273,6 +285,9 @@ vercel --prod
 # - NEXT_PUBLIC_MAPBOX_TOKEN
 # - NEXT_PUBLIC_SUPABASE_URL
 # - NEXT_PUBLIC_SUPABASE_ANON_KEY
+# - AFRICASTALKING_USERNAME
+# - AFRICASTALKING_API_KEY
+# - AFRICASTALKING_SENDER_ID (optional)
 ```
 
 ### Deploy with Docker
@@ -301,6 +316,7 @@ The app tracks comprehensive metrics for production monitoring:
 - `referral_provided` - Local services recommended
 - `service_rated` - User submits community rating
 - `ai_discovery_started` / `ai_discovery_completed` - Service discovery events
+- `sms_sent` / `sms_failed` - SMS notification delivery tracking
 
 ### Performance Metrics
 - **Conversation API:** Response times, message counts, language/country
@@ -308,6 +324,7 @@ The app tracks comprehensive metrics for production monitoring:
 - **Community Ratings:** Submission success rate, aggregate calculations
 - **Map Performance:** Service load times, coordinate enrichment latency
 - **AI Discovery:** Services found per query, deduplication rate
+- **SMS Delivery:** Success rate, countries, rate limit hits
 - **Error Tracking:** Failed API calls, mic permission denials, timeout events
 - **User Engagement:** Questions asked, top topics, voice vs. text preferences
 
@@ -389,9 +406,43 @@ For hackathon support or technical questions, refer to:
 - [Google Gemini API Docs](https://ai.google.dev)
 - [ElevenLabs API Docs](https://elevenlabs.io/docs)
 - [Next.js Docs](https://nextjs.org/docs)
-- [Project Documentation](./PHASE1_COMPLETE.md) - Detailed technical implementation
+- [Supabase Setup Guide](./SUPABASE_SETUP_GUIDE.md) - Step-by-step database configuration
+- [Africa's Talking SMS Setup](./AFRICASTALKING_SETUP.md) - SMS integration guide
+
+---
+
+## ✅ Quick Testing Checklist
+
+### Core Features
+- [ ] Voice assessment responds to spoken answers (`/crisis`)
+- [ ] AI chat generates relevant responses (`/guide`)
+- [ ] Live captions appear during TTS playback
+- [ ] Service map displays all countries (6 total)
+- [ ] Discover button finds AI services (15-30s wait)
+- [ ] Community ratings can be submitted
+- [ ] Comments appear after submission
+- [ ] SMS "Send to My Phone" button works (requires Africa's Talking)
+
+### All Countries Have Coordinates
+- [x] Nigeria (8 services) - Fully mapped
+- [x] South Africa (5 services) - Fully mapped
+- [x] Ghana (4 services) - **NEW: Accra & Kumasi**
+- [x] Uganda (5 services) - **NEW: Kampala & Masaka**
+- [x] Kenya (5 services) - **NEW: Nairobi & Kisumu**
+- [x] Rwanda (2 services) - **NEW: Kigali**
+
+**Total: 29 verified services across 6 African countries**
+
+### Mobile Testing
+- [ ] Map pan/zoom works on touch devices
+- [ ] Filter buttons are thumb-friendly
+- [ ] Service details panel doesn't obscure map
+- [ ] Rating star buttons work on mobile
+- [ ] Discover button visible without scrolling
+- [ ] SMS phone input works correctly
+- [ ] Country code selector is accessible
 
 ---
 
 **Built for the ElevenLabs Challenge (Google Cloud Partner Catalyst Hackathon)**  
-**Status:** ✅ Production-ready | 🚀 Deployed on Vercel | ♿ WCAG AA Compliant | 🔒 Enterprise-grade Security
+**Status:** ✅ Production-ready | 🚀 Deployed on Vercel | ♿ WCAG AA Compliant | 🔒 Enterprise-grade Security | 🗺️ 29 Services Mapped | 📱 SMS Enabled

@@ -31,14 +31,15 @@ const StarRating = ({
   label: string;
 }) => (
   <div className="space-y-1">
-    <label className="text-sm font-medium text-zinc-700">{label}</label>
+    <label className="text-sm font-semibold text-zinc-800">{label}</label>
     <div className="flex gap-1">
       {[1, 2, 3, 4, 5].map((star) => (
         <button
           key={star}
           type="button"
           onClick={() => onChange(star)}
-          className="text-2xl focus:outline-none transition-transform hover:scale-110"
+          className="text-3xl focus:outline-none transition-transform hover:scale-110 focus:ring-2 focus:ring-emerald-500 rounded p-1"
+          aria-label={`${star} star${star > 1 ? 's' : ''}`}
         >
           {star <= value ? '⭐' : '☆'}
         </button>
@@ -66,6 +67,14 @@ export default function ServiceDetailsPanel({
   const [ratingComments, setRatingComments] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  
+  // SMS feature states
+  const [showSmsForm, setShowSmsForm] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [countryCode, setCountryCode] = useState('+234'); // Default to Nigeria
+  const [isSendingSms, setIsSendingSms] = useState(false);
+  const [smsSuccess, setSmsSuccess] = useState(false);
+  const [smsError, setSmsError] = useState<string | null>(null);
 
   // Load community ratings when service changes
   useEffect(() => {
@@ -154,6 +163,66 @@ export default function ServiceDetailsPanel({
       );
     }
   };
+
+  // Send SMS with service details
+  const handleSendSms = async () => {
+    if (!phoneNumber.trim()) {
+      setSmsError(language === 'fr' ? 'Veuillez entrer un numéro' : 'Please enter a phone number');
+      return;
+    }
+
+    setIsSendingSms(true);
+    setSmsError(null);
+
+    try {
+      const fullPhoneNumber = `${countryCode}${phoneNumber.replace(/^0+/, '')}`;
+      
+      const response = await fetch('/api/sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phoneNumber: fullPhoneNumber,
+          service: {
+            name: service.name,
+            address: service.realTimeStatus?.formattedAddress || `${service.city}, ${service.country}`,
+            phone: service.phone || service.realTimeStatus?.formattedPhoneNumber,
+            services: Object.entries(service.services)
+              .filter(([_, enabled]) => enabled)
+              .map(([key]) => key.replace(/([A-Z])/g, ' $1').trim())
+              .slice(0, 3),
+            hours: service.realTimeStatus?.openingHours?.[0] || service.hours,
+            rating: communityRatings?.avg_friendliness,
+          },
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send SMS');
+      }
+
+      setSmsSuccess(true);
+      setShowSmsForm(false);
+      setPhoneNumber('');
+      setTimeout(() => setSmsSuccess(false), 5000);
+    } catch (error: any) {
+      console.error('SMS error:', error);
+      setSmsError(error.message || (language === 'fr' ? 'Échec de l\'envoi' : 'Failed to send SMS'));
+    } finally {
+      setIsSendingSms(false);
+    }
+  };
+
+  // Country codes for African countries
+  const countryCodes = [
+    { code: '+234', country: 'NG', flag: '🇳🇬' },
+    { code: '+27', country: 'ZA', flag: '🇿🇦' },
+    { code: '+254', country: 'KE', flag: '🇰🇪' },
+    { code: '+256', country: 'UG', flag: '🇺🇬' },
+    { code: '+250', country: 'RW', flag: '🇷🇼' },
+    { code: '+233', country: 'GH', flag: '🇬🇭' },
+  ];
 
   return (
     <div className="bg-white rounded-lg shadow-xl overflow-hidden flex flex-col h-full max-h-[90vh] lg:max-h-[85vh]">
@@ -461,7 +530,7 @@ export default function ServiceDetailsPanel({
           )}
 
           {showRatingForm ? (
-            <div className="bg-zinc-50 rounded-lg p-4 space-y-4">
+            <div className="bg-gradient-to-br from-emerald-50 to-white border-2 border-emerald-200 rounded-lg p-4 space-y-4">
               <StarRating
                 value={userRating.friendliness}
                 onChange={(v) => setUserRating({ ...userRating, friendliness: v })}
@@ -477,28 +546,34 @@ export default function ServiceDetailsPanel({
                 onChange={(v) => setUserRating({ ...userRating, waitTime: v })}
                 label={language === 'fr' ? 'Temps d\'attente' : 'Wait Time'}
               />
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="judgementFree"
-                  checked={userRating.judgementFree}
-                  onChange={(e) => setUserRating({ ...userRating, judgementFree: e.target.checked })}
-                  className="w-4 h-4 text-emerald-600 rounded"
-                />
-                <label htmlFor="judgementFree" className="text-sm text-zinc-700">
-                  {language === 'fr' ? 'Sans jugement' : 'Judgement-free'}
+              <div className="bg-white p-3 rounded-lg border-2 border-zinc-300">
+                <label className="flex items-center gap-2 text-sm font-semibold text-zinc-800 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    id="judgementFree"
+                    checked={userRating.judgementFree}
+                    onChange={(e) => setUserRating({ ...userRating, judgementFree: e.target.checked })}
+                    className="w-5 h-5 text-emerald-600 rounded focus:ring-2 focus:ring-emerald-500"
+                  />
+                  <span>🤝 {language === 'fr' ? 'Service sans jugement' : 'Judgement-free service'}</span>
                 </label>
               </div>
-              <textarea
-                value={userRating.comment}
-                onChange={(e) => setUserRating({ ...userRating, comment: e.target.value })}
-                placeholder={language === 'fr' ? 'Votre expérience (optionnel)' : 'Your experience (optional)'}
-                className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm resize-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                rows={3}
-              />
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-zinc-800 block">
+                  💬 {language === 'fr' ? 'Commentaire (optionnel)' : 'Comment (optional)'}
+                </label>
+                <textarea
+                  value={userRating.comment}
+                  onChange={(e) => setUserRating({ ...userRating, comment: e.target.value })}
+                  placeholder={language === 'fr' ? 'Partagez votre expérience...' : 'Share your experience...'}
+                  className="w-full px-3 py-2 border-2 border-zinc-300 rounded-lg text-sm resize-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white"
+                  rows={3}
+                  maxLength={500}
+                />
+              </div>
               <button
                 onClick={handleSubmitRating}
-                disabled={userRating.friendliness === 0 || userRating.privacy === 0 || isSubmitting}
+                disabled={userRating.friendliness === 0 || userRating.privacy === 0 || userRating.waitTime === 0 || isSubmitting}
                 className="w-full bg-emerald-600 text-white py-2 rounded-lg font-medium hover:bg-emerald-700 disabled:bg-zinc-300 disabled:cursor-not-allowed transition-colors"
               >
                 {isSubmitting 
@@ -516,6 +591,93 @@ export default function ServiceDetailsPanel({
           )}
         </div>
         </>
+        )}
+      </div>
+
+      {/* SMS Feature - above action buttons */}
+      <div className="border-t border-zinc-200 p-4 bg-zinc-50 flex-shrink-0">
+        {/* Success message */}
+        {smsSuccess && (
+          <div className="mb-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 text-sm">
+            ✅ {language === 'fr' ? 'SMS envoyé avec succès!' : 'SMS sent successfully!'}
+          </div>
+        )}
+
+        {!showSmsForm ? (
+          <button
+            onClick={() => setShowSmsForm(true)}
+            className="w-full flex items-center justify-center gap-2 bg-white border-2 border-emerald-600 text-emerald-600 py-2.5 rounded-lg font-medium hover:bg-emerald-50 transition-colors mb-3"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            {language === 'fr' ? '📱 Envoyer par SMS' : '📱 Send to My Phone'}
+          </button>
+        ) : (
+          <div className="mb-3 p-3 bg-white border border-zinc-200 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-sm font-semibold text-zinc-900">
+                {language === 'fr' ? 'Recevoir par SMS' : 'Receive via SMS'}
+              </h4>
+              <button
+                onClick={() => {
+                  setShowSmsForm(false);
+                  setSmsError(null);
+                }}
+                className="text-zinc-400 hover:text-zinc-600"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Country code selector + phone input */}
+            <div className="flex gap-2 mb-2">
+              <select
+                value={countryCode}
+                onChange={(e) => setCountryCode(e.target.value)}
+                className="w-24 px-2 py-2 border border-zinc-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              >
+                {countryCodes.map(({ code, country, flag }) => (
+                  <option key={code} value={code}>
+                    {flag} {code}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="tel"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))}
+                placeholder={language === 'fr' ? '8012345678' : '8012345678'}
+                className="flex-1 px-3 py-2 border border-zinc-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                maxLength={15}
+              />
+            </div>
+
+            {/* Error message */}
+            {smsError && (
+              <div className="mb-2 p-2 bg-red-50 border border-red-200 rounded text-red-700 text-xs">
+                {smsError}
+              </div>
+            )}
+
+            {/* Send button */}
+            <button
+              onClick={handleSendSms}
+              disabled={isSendingSms || !phoneNumber.trim()}
+              className="w-full bg-emerald-600 text-white py-2 rounded-lg font-medium hover:bg-emerald-700 disabled:bg-zinc-300 disabled:cursor-not-allowed transition-colors text-sm"
+            >
+              {isSendingSms 
+                ? (language === 'fr' ? '⏳ Envoi...' : '⏳ Sending...')
+                : (language === 'fr' ? 'Envoyer' : 'Send SMS')
+              }
+            </button>
+
+            <p className="text-xs text-zinc-500 mt-2">
+              {language === 'fr' 
+                ? 'Vous recevrez le nom, l\'adresse, le téléphone et les heures d\'ouverture.'
+                : 'You\'ll receive the name, address, phone, and hours.'}
+            </p>
+          </div>
         )}
       </div>
 

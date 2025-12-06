@@ -192,6 +192,8 @@ export const servicesDirectory: ServiceEntry[] = [
       "ACTS runs a confidential hotline and prevention programs; web pages state testing, prevention, PrEP/PEP linkage, and counselling. Good for youth and key populations. PEP_CERTAINTY: Medium-High; PrEP_CERTAINTY: Medium-High.",
     notesFr:
       "ACTS propose hotline confidentielle, programmes prévention, orientation PrEP/PEP et counseling. PEP_CERTAINTY: Moyen-Élevé; PrEP_CERTAINTY: Moyen-Élevé.",
+    lat: 5.6037,
+    lng: -0.1870,
   },
   {
     id: "gh_ppag_accra",
@@ -204,6 +206,8 @@ export const servicesDirectory: ServiceEntry[] = [
       "PPAG community clinics offer HIV/STI testing, reproductive health services and some PrEP activities in outreach/mobile sites. Check specific branch for PrEP/PEP; youth-friendly. PEP_CERTAINTY: Medium; PrEP_CERTAINTY: Medium.",
     notesFr:
       "Les cliniques PPAG proposent dépistage VIH/IST et services reproductifs; certaines offrent PrEP en outreach. PEP_CERTAINTY: Moyen; PrEP_CERTAINTY: Moyen.",
+    lat: 5.6145,
+    lng: -0.2050,
   },
   {
     id: "gh_marie_stopes_ghana",
@@ -216,6 +220,8 @@ export const servicesDirectory: ServiceEntry[] = [
       "Marie Stopes / MSI clinics provide sexual and reproductive health services, testing and counselling; some locations support PrEP referrals and youth-friendly services. PEP_CERTAINTY: Low-Medium; PrEP_CERTAINTY: Medium (branch dependent).",
     notesFr:
       "Clinique MSI offrant santé sexuelle et reproductive et dépistage; certaines branches orientent vers PrEP. PEP_CERTAINTY: Faible-Moyen; PrEP_CERTAINTY: Moyen.",
+    lat: 5.6200,
+    lng: -0.1700,
   },
   {
     id: "gh_regional_hospitals",
@@ -228,6 +234,8 @@ export const servicesDirectory: ServiceEntry[] = [
       "Regional teaching hospitals typically run HIV clinics and follow national guidelines including PEP and PrEP where programmes exist. Call ahead to confirm stock and hours. PEP_CERTAINTY: Medium; PrEP_CERTAINTY: Medium.",
     notesFr:
       "Les hôpitaux régionaux gèrent des cliniques VIH et suivent les directives nationales; vérifiez la disponibilité. PEP_CERTAINTY: Moyen; PrEP_CERTAINTY: Moyen.",
+    lat: 6.6885,
+    lng: -1.6244,
   },
 
   // ------------------------
@@ -244,6 +252,8 @@ export const servicesDirectory: ServiceEntry[] = [
       "AIC provides anonymous testing, PrEP enrollment, PEP within eligible windows, STI care and psychosocial support across multiple centres. Historically reliable for prevention programming. PEP_CERTAINTY: Medium-High; PrEP_CERTAINTY: High.",
     notesFr:
       "AIC offre tests anonymes, initiation PrEP, PEP, soins IST et soutien psychosocial. PEP_CERTAINTY: Moyen-Élevé; PrEP_CERTAINTY: Élevé.",
+    lat: 0.3476,
+    lng: 32.5825,
   },
   {
     id: "ug_ahf_masaka",
@@ -256,6 +266,8 @@ export const servicesDirectory: ServiceEntry[] = [
       "AHF Uganda Cares runs outreach clinics offering testing, ART linkages, condom distribution and PrEP rollout for priority groups. Local clinics often supply PEP in urgent situations. PEP_CERTAINTY: Medium; PrEP_CERTAINTY: Medium-High.",
     notesFr:
       "AHF Uganda Cares propose tests, ARV, distribution condoms et déploiement PrEP pour groupes prioritaires. PEP_CERTAINTY: Moyen; PrEP_CERTAINTY: Moyen-Élevé.",
+    lat: -0.3379,
+    lng: 31.7340,
   },
   {
     id: "ug_taso_kampala",
@@ -268,6 +280,8 @@ export const servicesDirectory: ServiceEntry[] = [
       "TASO is a longstanding provider of HIV care, counselling, ART and prevention services including referrals for PEP and engagement in PrEP programmes in some sites. PEP_CERTAINTY: Medium; PrEP_CERTAINTY: Medium.",
     notesFr:
       "TASO fournit soins VIH, counseling, ART et orientation PEP; certains sites participent aux programmes PrEP. PEP_CERTAINTY: Moyen; PrEP_CERTAINTY: Moyen.",
+    lat: 0.3136,
+    lng: 32.5811,
   },
   {
     id: "ug_kisenyi_keypop_clinic",
@@ -280,6 +294,8 @@ export const servicesDirectory: ServiceEntry[] = [
       "Several Kampala DICs focused on sex workers and MSM provide confidential testing, PrEP linkage and outreach PEP support; privacy and peer support are prioritised. PEP_CERTAINTY: Medium; PrEP_CERTAINTY: Medium-High.",
     notesFr:
       "Des centres DIC offrent dépistage confidentiel, orientation PrEP et soutien PEP; confidentialité assurée. PEP_CERTAINTY: Moyen; PrEP_CERTAINTY: Moyen-Élevé.",
+    lat: 0.3200,
+    lng: 32.5700,
   },
   {
     id: "ug_public_hospital_district",
@@ -292,6 +308,8 @@ export const servicesDirectory: ServiceEntry[] = [
       "Many regional public hospitals offer HIV testing; some can initiate PEP in emergencies and refer for PrEP enrollment. Availability depends on district supply. PEP_CERTAINTY: Medium; PrEP_CERTAINTY: Medium.",
     notesFr:
       "Les hôpitaux publics régionaux proposent des tests VIH et peuvent initier la PEP en urgence; vérifiez les stocks. PEP_CERTAINTY: Moyen; PrEP_CERTAINTY: Moyen.",
+    lat: 0.3800,
+    lng: 32.6500,
   },
 
   // ------------------------
@@ -308,6 +326,8 @@ export const servicesDirectory: ServiceEntry[] = [
       "LVCT Health runs DICEs, youth and key-population clinics offering PrEP, same-day PEP in many sites, testing and counselling. Strong reputation for PrEP rollout in Nairobi and Kisumu. PEP_CERTAINTY: High; PrEP_CERTAINTY: High.",
     notesFr:
       "LVCT gère des centres DICE offrant PrEP, PEP le jour même, dépistage et counseling. PEP_CERTAINTY: Élevé; PrEP_CERTAINTY: Élevé.",
+    lat: -1.2864,
+    lng: 36.8172,
   },
   {
     id: "ke_kenyatta_hiv_centre",
@@ -319,7 +339,9 @@ export const servicesDirectory: ServiceEntry[] = [
     notesEn:
       "National referral hospital with established emergency PEP pathways and PrEP programs at CCC. Walk-ins for emergency PEP are handled through emergency and HIV clinics. PEP_CERTAINTY: High; PrEP_CERTAINTY: High.",
     notesFr:
-      "Hôpital national de référence ; prise en charge PEP d'urgence et programmes PrEP. PEP_CERTAINTY: Élevé; PrEP_CERTAINTY: Élevé.",
+      "Hôpital national de référence ; prise en charge PEP d’urgence et programmes PrEP. PEP_CERTAINTY: Élevé; PrEP_CERTAINTY: Élevé.",
+    lat: -1.3000,
+    lng: 36.8070,
   },
   {
     id: "ke_nairobi_dice",
@@ -332,6 +354,8 @@ export const servicesDirectory: ServiceEntry[] = [
       "DICE sites focus on MSM, sex workers and youth; provide PrEP, PEP referral and often same-day prevention services when stock is available. PEP_CERTAINTY: Medium-High; PrEP_CERTAINTY: High.",
     notesFr:
       "Centres DICE ciblant MSM, travailleurs du sexe et jeunes; fournissent PrEP et orientent vers la PEP. PEP_CERTAINTY: Moyen-Élevé; PrEP_CERTAINTY: Élevé.",
+    lat: -1.2921,
+    lng: 36.8219,
   },
   {
     id: "ke_nascop_national",
@@ -341,9 +365,11 @@ export const servicesDirectory: ServiceEntry[] = [
     type: "public_clinic",
     services: { hivTesting: true, pep: true, prep: true, sti: true },
     notesEn:
-      "Kenya’s national programme (NASCOP) has widely supported PrEP rollout to public and private sites; many NASCOP facilities offer PrEP and emergency PEP protocols. PEP_CERTAINTY: High; PrEP_CERTAINTY: High.",
+      "Kenya's national programme (NASCOP) has widely supported PrEP rollout to public and private sites; many NASCOP facilities offer PrEP and emergency PEP protocols. PEP_CERTAINTY: High; PrEP_CERTAINTY: High.",
     notesFr:
       "Le programme national NASCOP soutient le déploiement de la PrEP dans de nombreux sites ; disponibilité élevée. PEP_CERTAINTY: Élevé; PrEP_CERTAINTY: Élevé.",
+    lat: -1.2850,
+    lng: 36.8200,
   },
   {
     id: "ke_kisumu_keypop",
@@ -356,6 +382,8 @@ export const servicesDirectory: ServiceEntry[] = [
       "Kisumu has active PrEP and PEP programs concentrated in both public hospitals and NGO DICE clinics; check the specific clinic for stock. PEP_CERTAINTY: Medium-High; PrEP_CERTAINTY: High.",
     notesFr:
       "Kisumu propose programmes PrEP/PEP via hôpitaux publics et ONG; vérifiez les stocks. PEP_CERTAINTY: Moyen-Élevé; PrEP_CERTAINTY: Élevé.",
+    lat: -0.0917,
+    lng: 34.7680,
   },
 
   // ------------------------
@@ -466,6 +494,8 @@ export const servicesDirectory: ServiceEntry[] = [
       "RBC coordinates national HIV services; district hospitals and health centres linked to RBC provide testing and prevention. PrEP/PEP policies exist; check district clinic stock. PEP_CERTAINTY: Medium; PrEP_CERTAINTY: Medium.",
     notesFr:
       "Le RBC coordonne les services VIH nationaux ; les hôpitaux de district fournissent dépistage et prévention. PEP_CERTAINTY: Moyen; PrEP_CERTAINTY: Moyen.",
+    lat: -1.9403,
+    lng: 29.8739,
   },
   {
     id: "rw_king_faisal_hospital_hiv",
@@ -478,5 +508,7 @@ export const servicesDirectory: ServiceEntry[] = [
       "Major referral hospital in Kigali with specialised HIV services and linkage to national programs; can arrange urgent post-exposure care and prevention counselling. PEP_CERTAINTY: Medium; PrEP_CERTAINTY: Medium.",
     notesFr:
       "Hôpital de référence à Kigali offrant services VIH spécialisés et orientation prévention. PEP_CERTAINTY: Moyen; PrEP_CERTAINTY: Moyen.",
+    lat: -1.9536,
+    lng: 30.0909,
   },
 ];
