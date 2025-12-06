@@ -1,10 +1,25 @@
+<div align="center">
+  <img src="public/banner.png" alt="Sans Capote - Baby, looks like we've got bad blood! That's chorus not truth" width="100%">
+</div>
+
+<div align="center">
+
 # Sans-Capote: Voice-First AI Sexual Health Guide
+
+**A stigma-free, voice-driven AI companion for sexual health and HIV prevention in African contexts.**
+
+🎗️ **World AIDS Day Contribution (December 1st)**  
+*This project is dedicated to World AIDS Day 2024, continuing the global mission to end HIV stigma, expand access to prevention and treatment, and ensure no one is left behind in the fight against AIDS.*
+
+</div>
+
+---
 
 > **About the Name:** "Sans-Capote" is French for "without a sheath/cover." While this phrase has literal connotations, we've chosen it as a metaphor for **removing the barriers of stigma and silence** surrounding sexual health education. Just as transparency requires removing covers, our mission is to create open, judgment-free conversations about topics that are often hidden or taboo. This name reflects our commitment to addressing sexual health with directness, honesty, and compassion.
 > 
 > **Note for Reviewers:** We acknowledge the dual meaning and welcome feedback on whether a different name (e.g., "Open Health," "Clear Talk," "Sans Tabou") would better serve our mission while maintaining cultural sensitivity.
 
-**A stigma-free, voice-driven AI companion for sexual health and HIV prevention in African contexts.**
+## 🌍 What is Sans-Capote?
 
 Combining **Google Gemini** for intelligent conversation, **ElevenLabs** for natural voice output, and **Supabase** for community ratings, Sans-Capote provides accessible, private, and culturally-sensitive health guidance via voice or text—even offline.
 

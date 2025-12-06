@@ -34,6 +34,7 @@ export default function HIVQuizGame({ language, onComplete }: HIVQuizGameProps) 
   
   const recognitionRef = useRef<any>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const currentQuestion = questions[currentQuestionIndex];
 
   // Initialize speech recognition
@@ -179,6 +180,12 @@ export default function HIVQuizGame({ language, onComplete }: HIVQuizGameProps) 
   };
 
   const speakText = async (text: string) => {
+    // Stop any currently playing audio
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    
     setIsSpeaking(true);
     try {
       const response = await fetch('/api/tts', {
@@ -200,13 +207,17 @@ export default function HIVQuizGame({ language, onComplete }: HIVQuizGameProps) 
         const audioUrl = URL.createObjectURL(audioBlob);
         
         const audio = new Audio(audioUrl);
+        audioRef.current = audio;
+        
         audio.onended = () => {
           setIsSpeaking(false);
+          audioRef.current = null;
           URL.revokeObjectURL(audioUrl);
         };
         audio.onerror = (e) => {
           console.error('Audio playback error:', e);
           setIsSpeaking(false);
+          audioRef.current = null;
           URL.revokeObjectURL(audioUrl);
         };
         await audio.play();
@@ -317,17 +328,24 @@ export default function HIVQuizGame({ language, onComplete }: HIVQuizGameProps) 
         })
         .join(', ');
       
+      const hintPrompt = language === 'en'
+        ? `Give a brief hint (2-3 sentences max) for this HIV quiz question without directly revealing the answer. Question: ${questionText}. Options: ${optionsText}`
+        : `Donnez un indice bref (2-3 phrases max) pour cette question de quiz VIH sans révéler directement la réponse. Question: ${questionText}. Options: ${optionsText}`;
+      
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: `Give a brief hint (2-3 sentences max) for this HIV quiz question without directly revealing the answer. Question: ${questionText}. Options: ${optionsText}`,
-          history: [],
+          messages: [
+            { role: 'user', content: hintPrompt }
+          ],
           language,
         }),
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`API error: ${response.status}`, errorText);
         throw new Error(`API error: ${response.status}`);
       }
 

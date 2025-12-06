@@ -33,28 +33,64 @@ export default function QuizCertificate({
     setIsGenerating(true);
 
     try {
-      // Use html2canvas if available, otherwise fallback
-      if (typeof window !== 'undefined' && (window as any).html2canvas) {
-        const element = certificateRef.current;
-        if (!element) return;
-
-        const canvas = await (window as any).html2canvas(element, {
-          scale: 2,
-          backgroundColor: '#ffffff',
+      // Simple approach: Use browser's native screenshot API or print
+      // Since html2canvas has issues with modern Tailwind colors
+      
+      // Option 1: Try native Share API (mobile-friendly)
+      if (navigator.share && navigator.canShare) {
+        await navigator.share({
+          title: language === 'en' ? 'HIV Education Certificate' : 'Certificat d\'Éducation VIH',
+          text: language === 'en' 
+            ? `I completed the HIV Education Quiz! Score: ${score} points (${percentage}%)`
+            : `J'ai complété le Quiz d'Éducation VIH! Score: ${score} points (${percentage}%)`,
         });
-
-        const dataUrl = canvas.toDataURL('image/png');
-        const link = document.createElement('a');
-        link.download = `HIV-Education-Certificate-${userName.replace(/\s+/g, '-')}.png`;
-        link.href = dataUrl;
-        link.click();
-      } else {
-        // Fallback: open print dialog
+        return;
+      }
+      
+      // Option 2: Use print dialog which works reliably
+      const printMessage = language === 'en'
+        ? 'To save your certificate:\n\n1. A print dialog will open\n2. Select "Save as PDF" or "Microsoft Print to PDF"\n3. Click Save\n\nReady?'
+        : 'Pour enregistrer votre certificat:\n\n1. Une boîte de dialogue d\'impression s\'ouvrira\n2. Sélectionnez "Enregistrer en PDF"\n3. Cliquez sur Enregistrer\n\nPrêt?';
+      
+      if (confirm(printMessage)) {
+        // Add print-specific styles temporarily
+        const style = document.createElement('style');
+        style.id = 'certificate-print-style';
+        style.textContent = `
+          @media print {
+            body * { visibility: hidden; }
+            #certificate-container, #certificate-container * { visibility: visible; }
+            #certificate-container { 
+              position: absolute; 
+              left: 0; 
+              top: 0; 
+              width: 100%; 
+              background: white !important;
+              padding: 40px;
+            }
+          }
+        `;
+        document.head.appendChild(style);
+        
+        // Mark certificate for printing
+        if (certificateRef.current) {
+          certificateRef.current.id = 'certificate-container';
+        }
+        
         window.print();
+        
+        // Cleanup
+        setTimeout(() => {
+          const printStyle = document.getElementById('certificate-print-style');
+          if (printStyle) printStyle.remove();
+        }, 1000);
       }
     } catch (error) {
       console.error('Certificate generation error:', error);
-      alert(language === 'en' ? 'Error generating certificate' : 'Erreur lors de la génération du certificat');
+      alert(language === 'en' 
+        ? 'Please use your browser\'s print function (Ctrl+P or Cmd+P) and select "Save as PDF"' 
+        : 'Veuillez utiliser la fonction d\'impression de votre navigateur (Ctrl+P ou Cmd+P) et sélectionner "Enregistrer en PDF"'
+      );
     } finally {
       setIsGenerating(false);
     }
@@ -148,7 +184,7 @@ export default function QuizCertificate({
         >
           {isGenerating 
             ? '⏳ Generating...' 
-            : `📥 ${language === 'en' ? 'Download Certificate' : 'Télécharger Certificat'}`
+            : `📥 ${language === 'en' ? 'Save Certificate (PDF)' : 'Enregistrer Certificat (PDF)'}`
           }
         </button>
       </div>
@@ -157,23 +193,24 @@ export default function QuizCertificate({
       <div 
         ref={certificateRef}
         className="space-y-4 rounded-2xl border-2 border-emerald-800 bg-zinc-900 px-6 py-6"
+        style={{ backgroundColor: '#18181b' }}
       >
         <div className="space-y-3 text-center">
           <div className="text-3xl">🎓</div>
           
-          <h1 className="text-xl font-bold text-zinc-100">
+          <h1 className="text-xl font-bold" style={{ color: '#f4f4f5' }}>
             {language === 'en' ? 'Certificate of Completion' : 'Certificat de Réussite'}
           </h1>
           
-          <p className="text-[11px] text-zinc-400">
+          <p className="text-[11px]" style={{ color: '#a1a1aa' }}>
             {language === 'en' ? 'This certifies that' : 'Ceci certifie que'}
           </p>
           
-          <p className="border-b border-zinc-700 py-2 text-lg font-bold text-emerald-300">
+          <p className="border-b py-2 text-lg font-bold" style={{ color: '#6ee7b7', borderColor: '#3f3f46' }}>
             {userName || (language === 'en' ? 'Your Name' : 'Votre Nom')}
           </p>
           
-          <p className="text-[10px] text-zinc-400">
+          <p className="text-[10px]" style={{ color: '#a1a1aa' }}>
             {language === 'en' 
               ? 'has successfully completed the HIV Education Quiz, demonstrating knowledge of HIV transmission, prevention, treatment, and stigma reduction.'
               : 'a complété avec succès le Quiz d\'Éducation VIH, démontrant des connaissances sur la transmission, la prévention, le traitement et la réduction de la stigmatisation du VIH.'
@@ -182,28 +219,28 @@ export default function QuizCertificate({
           
           <div className="grid grid-cols-3 gap-3 pt-3">
             <div>
-              <p className="text-sm font-bold text-emerald-300">{score}</p>
-              <p className="text-[9px] text-zinc-500">{language === 'en' ? 'Points' : 'Points'}</p>
+              <p className="text-sm font-bold" style={{ color: '#6ee7b7' }}>{score}</p>
+              <p className="text-[9px]" style={{ color: '#71717a' }}>{language === 'en' ? 'Points' : 'Points'}</p>
             </div>
             <div>
-              <p className="text-sm font-bold text-emerald-300">{percentage}%</p>
-              <p className="text-[9px] text-zinc-500">{language === 'en' ? 'Score' : 'Score'}</p>
+              <p className="text-sm font-bold" style={{ color: '#6ee7b7' }}>{percentage}%</p>
+              <p className="text-[9px]" style={{ color: '#71717a' }}>{language === 'en' ? 'Score' : 'Score'}</p>
             </div>
             <div>
-              <p className="text-sm font-bold text-emerald-300">{grade}</p>
-              <p className="text-[9px] text-zinc-500">{language === 'en' ? 'Grade' : 'Note'}</p>
+              <p className="text-sm font-bold" style={{ color: '#6ee7b7' }}>{grade}</p>
+              <p className="text-[9px]" style={{ color: '#71717a' }}>{language === 'en' ? 'Grade' : 'Note'}</p>
             </div>
           </div>
           
-          <div className="border-t border-zinc-800 pt-3">
-            <p className="text-[9px] text-zinc-500">
+          <div className="border-t pt-3" style={{ borderColor: '#27272a' }}>
+            <p className="text-[9px]" style={{ color: '#71717a' }}>
               {new Date().toLocaleDateString(language === 'en' ? 'en-US' : 'fr-FR', {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric'
               })}
             </p>
-            <p className="text-[8px] text-zinc-600 mt-2">
+            <p className="text-[8px] mt-2" style={{ color: '#52525b' }}>
               {language === 'en' 
                 ? 'Powered by Sans Capote • ElevenLabs • Google Gemini'
                 : 'Propulsé par Sans Capote • ElevenLabs • Google Gemini'
