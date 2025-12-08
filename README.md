@@ -165,6 +165,29 @@ Sans-Capote addresses these challenges by providing **accurate, stigma-free info
 
 ---
 
+## 💬 What People Are Saying
+
+Real voices from our community highlight why this work matters:
+
+> **"And I thought antibiotics cured HIV."**  
+> — Caleb
+
+> **"Maybe it won't be so hard to talk about living with HIV someday"**  
+> — Amaka
+
+> **"People need SexED in Africa and we need to stop being scared of bringing it up."**  
+> — Chiagozie B.
+
+> **"The rates at which people have unprotected sex, I think this app can help change the motion."**  
+> — Timilehin
+
+> **"Never been quizzed before on HIV. The certificate thing is cool."**  
+> — Fareeda
+
+These statements reflect the knowledge gaps, stigma, and urgent need for accessible sexual health education across Sub-Saharan Africa—exactly what Sans-Capote is built to address.
+
+---
+
 ## ⚡ Key Features
 
 ### 🎤 Voice Integration (ElevenLabs Challenge)

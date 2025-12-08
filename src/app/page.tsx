@@ -3,9 +3,44 @@
 import { MessageCircle, Map, BookOpen, AlertCircle, Sparkles, Shield, Users } from "lucide-react";
 import { useSettings } from "./settings-provider";
 import { strings, t } from "../i18n/strings";
+import { useState, useEffect } from "react";
 
 export default function Home() {
   const { language, discreetMode } = useSettings();
+
+  // Testimonial slideshow state
+  const testimonials = [
+    {
+      quote: "And I thought antibiotics cured HIV.",
+      author: "Caleb"
+    },
+    {
+      quote: "Maybe it won't be so hard to talk about living with HIV someday",
+      author: "Amaka"
+    },
+    {
+      quote: "People need SexED in Africa and we need to stop being scared of bringing it up.",
+      author: "Chiagozie B."
+    },
+    {
+      quote: "The rates at which people have unprotected sex, I think this app can help change the motion.",
+      author: "Timilehin"
+    },
+    {
+      quote: "Never been quizzed before on HIV. The certificate thing is cool.",
+      author: "Fareeda"
+    }
+  ];
+
+  const [currentTestimonial, setCurrentTestimonial] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
+    }, 5000); // Change every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [testimonials.length]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F8FAFF] via-[#FFF] to-[#F0F4FF]">
@@ -326,6 +361,58 @@ export default function Home() {
                 </div>
               </div>
             </a>
+          </div>
+        </section>
+
+        {/* Testimonials Section */}
+        <section className="mb-12 max-w-3xl mx-auto mt-16">
+          <div className="text-center mb-4">
+            <h2 className="text-2xl font-bold text-[#1a1a2e] mb-2">
+              {language === 'en' ? 'What People Are Saying' : 'Ce Que Disent Les Gens'}
+            </h2>
+            <p className="text-sm text-[#64748b]">
+              {language === 'en' ? 'Real voices from our community' : 'Vraies voix de notre communauté'}
+            </p>
+          </div>
+
+          <div className="relative bg-gradient-to-br from-[#008080] to-[#007070] rounded-2xl shadow-xl p-6 md:p-8 overflow-hidden">
+            {/* Decorative elements */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+            <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2"></div>
+
+            {/* Quote icon */}
+            <div className="absolute top-4 left-4 text-white/20 text-4xl font-serif">"</div>
+
+            {/* Testimonial content */}
+            <div className="relative z-10 min-h-[120px] flex flex-col items-center justify-center text-center">
+              <div 
+                key={currentTestimonial}
+                className="animate-fade-in"
+              >
+                <p className="text-base md:text-lg text-white font-medium mb-3 leading-relaxed max-w-xl">
+                  "{testimonials[currentTestimonial].quote}"
+                </p>
+                <p className="text-white/80 font-semibold text-sm">
+                  — {testimonials[currentTestimonial].author}
+                </p>
+              </div>
+            </div>
+
+            {/* Navigation dots */}
+            <div className="relative z-10 flex justify-center gap-2 mt-3">
+              {testimonials.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentTestimonial(index)}
+                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                    index === currentTestimonial
+                      ? 'bg-white w-6'
+                      : 'bg-white/40 hover:bg-white/60'
+                  }`}
+                  aria-label={`Go to testimonial ${index + 1}`}
+                />
+              ))}
+            </div>
           </div>
         </section>
       </main>
