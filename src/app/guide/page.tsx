@@ -8,6 +8,8 @@ import ErrorBoundary from "../../components/ErrorBoundary";
 import SentimentIndicator from "../../components/SentimentIndicator";
 import { strings, t } from "../../i18n/strings";
 import type { EmotionalState, StressLevel } from "@/lib/sentiment-analysis";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 type Role = "user" | "assistant";
 
@@ -391,8 +393,8 @@ export default function GuidePage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col bg-[#F9F9F9] px-6 py-6">
-      <header className="space-y-3 pb-4">
+    <main className="mx-auto flex h-screen max-w-2xl flex-col bg-[#F9F9F9] px-6 py-6">
+      <header className="flex-shrink-0 space-y-3 pb-4">
         <div className="flex items-center justify-between gap-3">
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-stone-900 flex items-center gap-2">
@@ -426,7 +428,7 @@ export default function GuidePage() {
       </header>
 
       <ErrorBoundary>
-        <section className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-lg">
+        <section className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-lg min-h-0">
           <div className="flex items-center justify-between border-b border-stone-200 px-4 py-3 bg-stone-50">
             <span className="text-xs font-medium text-stone-700 flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-emerald-600" />
@@ -460,19 +462,40 @@ export default function GuidePage() {
                       : "max-w-[85%] rounded-2xl rounded-tr-sm bg-[#008080] px-4 py-3 text-white shadow-sm"
                   }
                 >
-                  {paragraphs.map((para, pIndex) => {
-                    const lines = para.split(/\n+/);
-                    return (
-                      <p key={pIndex} className={pIndex > 0 ? "mt-2" : undefined}>
-                        {lines.map((line, lIndex) => (
-                          <span key={lIndex}>
-                            {line}
-                            {lIndex < lines.length - 1 && <br />}
-                          </span>
-                        ))}
-                      </p>
-                    );
-                  })}
+                  {m.role === "assistant" ? (
+                    <div className="text-sm">
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          p: ({ children }) => <p className="mb-2 last:mb-0 text-sm leading-relaxed">{children}</p>,
+                          h2: ({ children }) => <h2 className="text-base font-bold mb-2 mt-3 first:mt-0">{children}</h2>,
+                          h3: ({ children }) => <h3 className="text-sm font-bold mb-1.5 mt-2 first:mt-0">{children}</h3>,
+                          strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                          ul: ({ children }) => <ul className="ml-4 mb-2 list-disc text-sm">{children}</ul>,
+                          ol: ({ children }) => <ol className="ml-4 mb-2 list-decimal text-sm">{children}</ol>,
+                          li: ({ children }) => <li className="mb-0.5 leading-relaxed">{children}</li>,
+                        }}
+                      >
+                        {m.content}
+                      </ReactMarkdown>
+                    </div>
+                  ) : (
+                    <>
+                      {paragraphs.map((para, pIndex) => {
+                        const lines = para.split(/\n+/);
+                        return (
+                          <p key={pIndex} className={pIndex > 0 ? "mt-2" : undefined}>
+                            {lines.map((line, lIndex) => (
+                              <span key={lIndex}>
+                                {line}
+                                {lIndex < lines.length - 1 && <br />}
+                              </span>
+                            ))}
+                          </p>
+                        );
+                      })}
+                    </>
+                  )}
                   {m.role === 'assistant' && m.fullContent && m.fullContent.length > m.content.length && (
                     <div className="mt-2 flex gap-2">
                       <button
