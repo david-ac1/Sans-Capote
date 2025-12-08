@@ -1,6 +1,6 @@
 "use client";
 
-import { MessageCircle, Map, BookOpen, AlertCircle, Settings } from "lucide-react";
+import { MessageCircle, Map, BookOpen, AlertCircle, Sparkles, Shield, Users } from "lucide-react";
 import { useSettings } from "./settings-provider";
 import { strings, t } from "../i18n/strings";
 
@@ -8,94 +8,266 @@ export default function Home() {
   const { language } = useSettings();
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA]">
-      <main className="mx-auto flex min-h-screen max-w-4xl flex-col px-6 py-8 lg:py-12">
-        {/* Hero Section - Prominent Brand */}
-        <header className="space-y-4 text-center mb-8">
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-[#008080] tracking-tight">
-            SANS CAPOTE
-          </h1>
-          
-          <p className="text-lg sm:text-xl text-[#1a1a1a] font-bold max-w-xl mx-auto">
-            {t(strings.home.subtitle, language)}
-          </p>
-        </header>
+    <div className="min-h-screen bg-gradient-to-br from-[#F8FAFF] via-[#FFF] to-[#F0F4FF]">
+      <main className="mx-auto max-w-7xl px-6 py-12 lg:py-20">
+        {/* Modern Hero Section - Split Layout */}
+        <section className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center mb-20">
+          {/* Left: Content */}
+          <div className="space-y-6">
+            <div className="space-y-3">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#1a1a2e] leading-tight">
+                {language === 'en' ? (
+                  <>
+                    Enhance Your <span className="text-[#008080]">Sexual Health</span><br />
+                    and Streamline Your <span className="text-[#008080]">Healthcare Journey</span>
+                  </>
+                ) : (
+                  <>
+                    Améliorez Votre <span className="text-[#008080]">Santé Sexuelle</span><br />
+                    et Rationalisez Votre <span className="text-[#008080]">Parcours de Santé</span>
+                  </>
+                )}
+              </h1>
+              
+              <p className="text-sm sm:text-base text-[#64748b] leading-relaxed max-w-xl">
+                {language === 'en' 
+                  ? 'Leverage tailored digital strategies to improve engagement while supporting your sexual health with Sans Capote\'s private, AI-powered guidance.'
+                  : 'Profitez de stratégies numériques sur mesure pour améliorer l\'engagement tout en soutenant votre santé sexuelle avec les conseils privés et alimentés par l\'IA de Sans Capote.'}
+              </p>
+            </div>
 
-        {/* Compact Feature Cards */}
-        <section className="space-y-3 max-w-3xl mx-auto w-full">
-          {/* Primary Feature - Guide */}
+            <div className="flex flex-wrap gap-3">
+              <a
+                href="/guide"
+                className="inline-flex items-center gap-2 bg-[#008080] text-white px-6 py-3 rounded-full font-semibold text-sm hover:bg-[#007070] transition-all hover:scale-105 shadow-lg hover:shadow-xl"
+              >
+                <Sparkles className="w-4 h-4" />
+                {language === 'en' ? 'Get Started' : 'Commencer'}
+              </a>
+              <a
+                href="/resources"
+                className="inline-flex items-center gap-2 bg-white text-[#008080] border-2 border-[#008080] px-6 py-3 rounded-full font-semibold text-sm hover:bg-[#F8FAFF] transition-all shadow-md hover:shadow-lg"
+              >
+                {language === 'en' ? 'Learn More' : 'En Savoir Plus'}
+              </a>
+            </div>
+
+            {/* Trust Indicators */}
+            <div className="flex flex-wrap gap-4 pt-2">
+              <div className="flex items-center gap-2">
+                <Shield className="w-4 h-4 text-[#10b981]" />
+                <span className="text-xs font-medium text-[#64748b]">
+                  {language === 'en' ? '100% Private' : '100% Privé'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-[#10b981]" />
+                <span className="text-xs font-medium text-[#64748b]">
+                  {language === 'en' ? '24/7 Support' : 'Support 24/7'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-[#10b981]" />
+                <span className="text-xs font-medium text-[#64748b]">
+                  {language === 'en' ? 'AI-Powered' : 'Propulsé par IA'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Floating Cards Visual */}
+          <div className="relative hidden lg:block">
+            <div className="relative h-[600px]">
+              {/* Main Feature Card - Floating */}
+              <div className="absolute top-0 right-0 w-80 bg-white rounded-3xl shadow-2xl p-6 transform hover:scale-105 transition-all duration-300 border border-[#e2e8f0]">
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="rounded-2xl bg-gradient-to-br from-[#008080] to-[#007070] p-3">
+                    <MessageCircle className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-bold text-[#1a1a2e] mb-1">
+                      {language === 'en' ? 'AI Health Guide' : 'Guide Santé IA'}
+                    </h3>
+                    <p className="text-sm text-[#64748b]">
+                      {language === 'en' ? 'Private consultations' : 'Consultations privées'}
+                    </p>
+                  </div>
+                </div>
+                <div className="h-2 bg-[#F0F4FF] rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-[#008080] to-[#10b981] w-3/4 rounded-full"></div>
+                </div>
+              </div>
+
+              {/* HIV Services Navigator Card */}
+              <div className="absolute top-32 left-0 w-72 bg-white rounded-3xl shadow-xl p-6 transform hover:scale-105 transition-all duration-300 border border-[#e2e8f0]">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold text-[#64748b]">
+                      {language === 'en' ? 'Services Navigator' : 'Navigateur Services'}
+                    </span>
+                    <span className="text-xs bg-[#D4F4DD] text-[#059669] px-3 py-1 rounded-full font-semibold">
+                      {language === 'en' ? 'Active' : 'Actif'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-xl bg-gradient-to-br from-[#10b981] to-[#059669] p-3">
+                      <Map className="w-8 h-8 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-[#1a1a2e]">
+                        {language === 'en' ? 'Find Care' : 'Trouver Soins'}
+                      </p>
+                      <p className="text-xs text-[#64748b]">
+                        {language === 'en' ? 'Clinics near you' : 'Cliniques près de vous'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((val, i) => (
+                      <div key={i} className={`flex-1 h-1 rounded-full ${i < 3 ? 'bg-[#10b981]' : 'bg-[#e2e8f0]'}`}></div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Schedule Card */}
+              <div className="absolute bottom-20 right-12 w-64 bg-white rounded-3xl shadow-xl p-5 transform hover:scale-105 transition-all duration-300 border border-[#e2e8f0]">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl bg-[#EEF2FF] p-3">
+                    <AlertCircle className="w-5 h-5 text-[#008080]" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-[#1a1a2e]">
+                      {language === 'en' ? 'Crisis Support' : 'Support d\'Urgence'}
+                    </p>
+                    <p className="text-xs text-[#64748b]">
+                      {language === 'en' ? 'Available 24/7' : 'Disponible 24/7'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Decorative Elements */}
+              <div className="absolute top-40 right-40 w-20 h-20 bg-gradient-to-br from-[#008080]/10 to-[#10b981]/10 rounded-full blur-2xl"></div>
+              <div className="absolute bottom-40 left-20 w-32 h-32 bg-gradient-to-br from-[#8B5CF6]/10 to-[#008080]/10 rounded-full blur-3xl"></div>
+            </div>
+          </div>
+        </section>
+
+        {/* Feature Cards Section */}
+        <section className="space-y-6">
+          <div className="text-center space-y-2 mb-8">
+            <h2 className="text-2xl sm:text-3xl font-bold text-[#1a1a2e]">
+              {language === 'en' ? (
+                <>How we're <span className="text-[#008080]">transforming wellness</span> for you</>
+              ) : (
+                <>Comment nous <span className="text-[#008080]">transformons le bien-être</span> pour vous</>
+              )}
+            </h2>
+            <p className="text-sm text-[#64748b] max-w-2xl mx-auto">
+              {language === 'en' 
+                ? 'Comprehensive sexual health tools designed with your privacy and well-being in mind'
+                : 'Des outils de santé sexuelle complets conçus en pensant à votre vie privée et à votre bien-être'}
+            </p>
+          </div>
+
+          {/* Primary Card - AI Guide */}
           <a
             href="/guide"
-            className="group flex items-center gap-4 rounded-lg bg-[#008080] px-6 py-5 hover:bg-[#007070] transition-colors shadow-sm"
+            className="group block bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border border-[#e2e8f0] hover:border-[#008080]/30"
           >
-            <div className="rounded-lg bg-white/90 p-3">
-              <MessageCircle className="w-6 h-6 text-[#008080]" />
+            <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+              <div className="rounded-xl bg-gradient-to-br from-[#008080] to-[#007070] p-4 shadow-lg">
+                <MessageCircle className="w-8 h-8 text-white" />
+              </div>
+              <div className="flex-1 space-y-1">
+                <h3 className="text-xl font-bold text-[#1a1a2e] group-hover:text-[#008080] transition-colors">
+                  {t(strings.home.cards.guide.title, language)}
+                </h3>
+                <p className="text-sm text-[#64748b] leading-relaxed">
+                  {t(strings.home.cards.guide.body, language)}
+                </p>
+              </div>
+              <div className="text-[#008080] opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-2">
+                <span className="text-2xl">→</span>
+              </div>
             </div>
-            <div className="flex-1">
-              <p className="text-lg font-bold text-white">
-                {t(strings.home.cards.guide.title, language)}
-              </p>
-              <p className="text-sm text-white/90 mt-1">
-                {t(strings.home.cards.guide.body, language)}
-              </p>
-            </div>
-            <span className="text-white text-xl opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all">→</span>
           </a>
 
-          {/* Three Square Cards - Grid */}
-          <div className="grid grid-cols-3 gap-3">
-            {/* Navigator */}
+          {/* Secondary Features Grid */}
+          <div className="grid md:grid-cols-3 gap-4">
+            {/* Navigator Card */}
             <a
               href="/navigator"
-              className="group flex flex-col items-center justify-center gap-2 rounded-lg bg-[#E3F4F4] px-3 py-5 hover:bg-[#D1ECEC] transition-colors border border-[#008080]/20 aspect-square"
+              className="group bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border border-[#e2e8f0] hover:border-[#10b981]/30 hover:-translate-y-1"
             >
-              <div className="rounded-lg bg-[#008080] p-2.5">
-                <Map className="w-5 h-5 text-white" />
+              <div className="space-y-3">
+                <div className="rounded-xl bg-gradient-to-br from-[#10b981] to-[#059669] p-3 w-fit shadow-md">
+                  <Map className="w-6 h-6 text-white" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-lg font-bold text-[#1a1a2e] group-hover:text-[#10b981] transition-colors">
+                    {t(strings.home.cards.navigator.title, language)}
+                  </h3>
+                  <p className="text-xs text-[#64748b] leading-relaxed">
+                    {language === 'en' 
+                      ? 'Find HIV testing, PrEP, PEP, and support services near you'
+                      : 'Trouvez des tests VIH, PrEP, PEP et services de soutien près de chez vous'}
+                  </p>
+                </div>
               </div>
-              <p className="text-xs font-bold text-[#1a1a1a] text-center leading-tight">
-                {t(strings.home.cards.navigator.title, language)}
-              </p>
             </a>
 
-            {/* Resources */}
+            {/* Resources Card */}
             <a
               href="/resources"
-              className="group flex flex-col items-center justify-center gap-2 rounded-lg bg-[#FFF9E6] px-3 py-5 hover:bg-[#FFF3D1] transition-colors border border-[#F4D35E]/30 aspect-square"
+              className="group bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border border-[#e2e8f0] hover:border-[#F59E0B]/30 hover:-translate-y-1"
             >
-              <div className="rounded-lg bg-[#F4D35E] p-2.5">
-                <BookOpen className="w-5 h-5 text-[#1a1a1a]" />
+              <div className="space-y-3">
+                <div className="rounded-xl bg-gradient-to-br from-[#F59E0B] to-[#D97706] p-3 w-fit shadow-md">
+                  <BookOpen className="w-6 h-6 text-white" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-lg font-bold text-[#1a1a2e] group-hover:text-[#F59E0B] transition-colors">
+                    {t(strings.home.cards.resources.title, language)}
+                  </h3>
+                  <p className="text-xs text-[#64748b] leading-relaxed">
+                    {language === 'en'
+                      ? 'Interactive quizzes, educational content, and community resources'
+                      : 'Quiz interactifs, contenu éducatif et ressources communautaires'}
+                  </p>
+                </div>
               </div>
-              <p className="text-xs font-bold text-[#1a1a1a] text-center leading-tight">
-                {t(strings.home.cards.resources.title, language)}
-              </p>
             </a>
 
-            {/* Crisis - Urgent */}
+            {/* Crisis Card */}
             <a
               href="/crisis"
-              className="group flex flex-col items-center justify-center gap-2 rounded-lg bg-[#FFE5E8] px-3 py-5 hover:bg-[#FFD1D6] transition-colors border-2 border-[#E63946] aspect-square"
+              className="group bg-gradient-to-br from-[#EF4444] to-[#DC2626] rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border-2 border-[#EF4444] hover:-translate-y-1 text-white"
             >
-              <div className="rounded-lg bg-[#E63946] p-2.5">
-                <AlertCircle className="w-5 h-5 text-white" />
-              </div>
-              <div className="text-center">
-                <p className="text-xs font-bold text-[#E63946] leading-tight">
-                  {t(strings.home.cards.crisis.title, language)}
-                </p>
-                <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#E63946] text-white">
-                  24/7
-                </span>
+              <div className="space-y-3">
+                <div className="rounded-xl bg-white/20 backdrop-blur-sm p-3 w-fit">
+                  <AlertCircle className="w-6 h-6 text-white" />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-bold">
+                      {t(strings.home.cards.crisis.title, language)}
+                    </h3>
+                    <span className="bg-white/30 backdrop-blur-sm px-2 py-0.5 rounded-full text-xs font-bold">
+                      24/7
+                    </span>
+                  </div>
+                  <p className="text-xs text-white/90 leading-relaxed">
+                    {language === 'en'
+                      ? 'Immediate guidance for recent exposure. Get PEP/PrEP info now.'
+                      : 'Conseils immédiats pour une exposition récente. Obtenez des infos PEP/PrEP maintenant.'}
+                  </p>
+                </div>
               </div>
             </a>
           </div>
         </section>
-
-        {/* Footer */}
-        <footer className="mt-auto pt-8 pb-4 text-center">
-          <p className="text-xs text-[#999999]">
-            {t(strings.home.footerNotice, language)}
-          </p>
-        </footer>
       </main>
     </div>
   );
