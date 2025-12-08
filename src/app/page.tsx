@@ -31,12 +31,12 @@ export default function Home() {
                 ) : (
                   language === 'en' ? (
                     <>
-                      Enhance Your <span className="text-[#008080]">Sexual Health</span><br />
+                      Take Charge of Your <span className="text-[#008080]">Sexual Health</span> Now<br />
                       and Streamline Your <span className="text-[#008080]">Healthcare Journey</span>
                     </>
                   ) : (
                     <>
-                      Améliorez Votre <span className="text-[#008080]">Santé Sexuelle</span><br />
+                      Prenez le Contrôle de Votre <span className="text-[#008080]">Santé Sexuelle</span> Maintenant<br />
                       et Rationalisez Votre <span className="text-[#008080]">Parcours de Santé</span>
                     </>
                   )
