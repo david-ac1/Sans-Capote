@@ -5,7 +5,7 @@ import { useSettings } from "./settings-provider";
 import { strings, t } from "../i18n/strings";
 
 export default function Home() {
-  const { language } = useSettings();
+  const { language, discreetMode } = useSettings();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F8FAFF] via-[#FFF] to-[#F0F4FF]">
@@ -16,23 +16,43 @@ export default function Home() {
           <div className="space-y-6">
             <div className="space-y-3">
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#1a1a2e] leading-tight">
-                {language === 'en' ? (
-                  <>
-                    Enhance Your <span className="text-[#008080]">Sexual Health</span><br />
-                    and Streamline Your <span className="text-[#008080]">Healthcare Journey</span>
-                  </>
+                {discreetMode ? (
+                  language === 'en' ? (
+                    <>
+                      Take Control of Your <span className="text-[#008080]">Personal Health</span><br />
+                      with <span className="text-[#008080]">Private Wellness Support</span>
+                    </>
+                  ) : (
+                    <>
+                      Prenez le Contrôle de Votre <span className="text-[#008080]">Santé Personnelle</span><br />
+                      avec <span className="text-[#008080]">Soutien au Bien-être Privé</span>
+                    </>
+                  )
                 ) : (
-                  <>
-                    Améliorez Votre <span className="text-[#008080]">Santé Sexuelle</span><br />
-                    et Rationalisez Votre <span className="text-[#008080]">Parcours de Santé</span>
-                  </>
+                  language === 'en' ? (
+                    <>
+                      Enhance Your <span className="text-[#008080]">Sexual Health</span><br />
+                      and Streamline Your <span className="text-[#008080]">Healthcare Journey</span>
+                    </>
+                  ) : (
+                    <>
+                      Améliorez Votre <span className="text-[#008080]">Santé Sexuelle</span><br />
+                      et Rationalisez Votre <span className="text-[#008080]">Parcours de Santé</span>
+                    </>
+                  )
                 )}
               </h1>
               
               <p className="text-sm sm:text-base text-[#64748b] leading-relaxed max-w-xl">
-                {language === 'en' 
-                  ? 'Leverage tailored digital strategies to improve engagement while supporting your sexual health with Sans Capote\'s private, AI-powered guidance.'
-                  : 'Profitez de stratégies numériques sur mesure pour améliorer l\'engagement tout en soutenant votre santé sexuelle avec les conseils privés et alimentés par l\'IA de Sans Capote.'}
+                {discreetMode ? (
+                  language === 'en'
+                    ? 'Get personalized wellness guidance with complete privacy. AI-powered support for your health journey, available 24/7.'
+                    : 'Obtenez des conseils de bien-être personnalisés en toute confidentialité. Soutien alimenté par IA pour votre parcours de santé, disponible 24/7.'
+                ) : (
+                  language === 'en'
+                    ? 'Leverage tailored digital strategies to improve engagement while supporting your sexual health with Sans Capote\'s private, AI-powered guidance.'
+                    : 'Profitez de stratégies numériques sur mesure pour améliorer l\'engagement tout en soutenant votre santé sexuelle avec les conseils privés et alimentés par l\'IA de Sans Capote.'
+                )}
               </p>
             </div>
 
@@ -86,7 +106,9 @@ export default function Home() {
                   </div>
                   <div className="flex-1">
                     <h3 className="font-bold text-[#1a1a2e] mb-1">
-                      {language === 'en' ? 'AI Health Guide' : 'Guide Santé IA'}
+                      {discreetMode 
+                        ? (language === 'en' ? 'Personal Advisor' : 'Conseiller Personnel')
+                        : (language === 'en' ? 'AI Health Guide' : 'Guide Santé IA')}
                     </h3>
                     <p className="text-sm text-[#64748b]">
                       {language === 'en' ? 'Private consultations' : 'Consultations privées'}
@@ -103,7 +125,9 @@ export default function Home() {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-semibold text-[#64748b]">
-                      {language === 'en' ? 'Services Navigator' : 'Navigateur Services'}
+                      {discreetMode
+                        ? (language === 'en' ? 'Care Finder' : 'Trouver Soins')
+                        : (language === 'en' ? 'Services Navigator' : 'Navigateur Services')}
                     </span>
                     <span className="text-xs bg-[#D4F4DD] text-[#059669] px-3 py-1 rounded-full font-semibold">
                       {language === 'en' ? 'Active' : 'Actif'}
@@ -158,16 +182,30 @@ export default function Home() {
         <section className="space-y-6">
           <div className="text-center space-y-2 mb-8">
             <h2 className="text-2xl sm:text-3xl font-bold text-[#1a1a2e]">
-              {language === 'en' ? (
-                <>How we're <span className="text-[#008080]">transforming wellness</span> for you</>
+              {discreetMode ? (
+                language === 'en' ? (
+                  <>Your <span className="text-[#008080]">wellness tools</span> in one place</>
+                ) : (
+                  <>Vos <span className="text-[#008080]">outils de bien-être</span> en un seul endroit</>
+                )
               ) : (
-                <>Comment nous <span className="text-[#008080]">transformons le bien-être</span> pour vous</>
+                language === 'en' ? (
+                  <>How we're <span className="text-[#008080]">transforming wellness</span> for you</>
+                ) : (
+                  <>Comment nous <span className="text-[#008080]">transformons le bien-être</span> pour vous</>
+                )
               )}
             </h2>
             <p className="text-sm text-[#64748b] max-w-2xl mx-auto">
-              {language === 'en' 
-                ? 'Comprehensive sexual health tools designed with your privacy and well-being in mind'
-                : 'Des outils de santé sexuelle complets conçus en pensant à votre vie privée et à votre bien-être'}
+              {discreetMode ? (
+                language === 'en'
+                  ? 'Comprehensive wellness tools designed with your privacy and well-being in mind'
+                  : 'Des outils de bien-être complets conçus en pensant à votre vie privée et à votre bien-être'
+              ) : (
+                language === 'en' 
+                  ? 'Comprehensive sexual health tools designed with your privacy and well-being in mind'
+                  : 'Des outils de santé sexuelle complets conçus en pensant à votre vie privée et à votre bien-être'
+              )}
             </p>
           </div>
 
@@ -182,10 +220,14 @@ export default function Home() {
               </div>
               <div className="flex-1 space-y-1">
                 <h3 className="text-xl font-bold text-[#1a1a2e] group-hover:text-[#008080] transition-colors">
-                  {t(strings.home.cards.guide.title, language)}
+                  {discreetMode
+                    ? (language === 'en' ? 'Personal Health Advisor' : 'Conseiller de Santé Personnel')
+                    : t(strings.home.cards.guide.title, language)}
                 </h3>
                 <p className="text-sm text-[#64748b] leading-relaxed">
-                  {t(strings.home.cards.guide.body, language)}
+                  {discreetMode
+                    ? (language === 'en' ? 'Ask questions in private. Get clear, compassionate answers about your health.' : 'Posez vos questions en privé. Recevez des réponses claires et compatissantes sur votre santé.')
+                    : t(strings.home.cards.guide.body, language)}
                 </p>
               </div>
               <div className="text-[#008080] opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-2">
@@ -207,12 +249,18 @@ export default function Home() {
                 </div>
                 <div className="space-y-1">
                   <h3 className="text-lg font-bold text-[#1a1a2e] group-hover:text-[#10b981] transition-colors">
-                    {t(strings.home.cards.navigator.title, language)}
+                    {discreetMode
+                      ? (language === 'en' ? 'Healthcare Directory' : 'Annuaire de Soins')
+                      : t(strings.home.cards.navigator.title, language)}
                   </h3>
                   <p className="text-xs text-[#64748b] leading-relaxed">
-                    {language === 'en' 
-                      ? 'Find HIV testing, PrEP, PEP, and support services near you'
-                      : 'Trouvez des tests VIH, PrEP, PEP et services de soutien près de chez vous'}
+                    {discreetMode
+                      ? (language === 'en' 
+                          ? 'Find healthcare services and clinics in your area'
+                          : 'Trouvez des services de santé et des cliniques dans votre région')
+                      : (language === 'en' 
+                          ? 'Find HIV testing, PrEP, PEP, and support services near you'
+                          : 'Trouvez des tests VIH, PrEP, PEP et services de soutien près de chez vous')}
                   </p>
                 </div>
               </div>
@@ -229,12 +277,18 @@ export default function Home() {
                 </div>
                 <div className="space-y-1">
                   <h3 className="text-lg font-bold text-[#1a1a2e] group-hover:text-[#F59E0B] transition-colors">
-                    {t(strings.home.cards.resources.title, language)}
+                    {discreetMode
+                      ? (language === 'en' ? 'Health Library' : 'Bibliothèque Santé')
+                      : t(strings.home.cards.resources.title, language)}
                   </h3>
                   <p className="text-xs text-[#64748b] leading-relaxed">
-                    {language === 'en'
-                      ? 'Interactive quizzes, educational content, and community resources'
-                      : 'Quiz interactifs, contenu éducatif et ressources communautaires'}
+                    {discreetMode
+                      ? (language === 'en'
+                          ? 'Interactive quizzes, wellness content, and health resources'
+                          : 'Quiz interactifs, contenu bien-être et ressources santé')
+                      : (language === 'en'
+                          ? 'Interactive quizzes, educational content, and community resources'
+                          : 'Quiz interactifs, contenu éducatif et ressources communautaires')}
                   </p>
                 </div>
               </div>
@@ -252,16 +306,22 @@ export default function Home() {
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <h3 className="text-lg font-bold">
-                      {t(strings.home.cards.crisis.title, language)}
+                      {discreetMode
+                        ? (language === 'en' ? 'Urgent Support' : 'Soutien Urgent')
+                        : t(strings.home.cards.crisis.title, language)}
                     </h3>
                     <span className="bg-white/30 backdrop-blur-sm px-2 py-0.5 rounded-full text-xs font-bold">
                       24/7
                     </span>
                   </div>
                   <p className="text-xs text-white/90 leading-relaxed">
-                    {language === 'en'
-                      ? 'Immediate guidance for recent exposure. Get PEP/PrEP info now.'
-                      : 'Conseils immédiats pour une exposition récente. Obtenez des infos PEP/PrEP maintenant.'}
+                    {discreetMode
+                      ? (language === 'en'
+                          ? 'Immediate help for urgent health concerns. Available anytime.'
+                          : 'Aide immédiate pour des préoccupations de santé urgentes. Disponible à tout moment.')
+                      : (language === 'en'
+                          ? 'Immediate guidance for recent exposure. Get PEP/PrEP info now.'
+                          : 'Conseils immédiats pour une exposition récente. Obtenez des infos PEP/PrEP maintenant.')}
                   </p>
                 </div>
               </div>

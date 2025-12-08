@@ -115,13 +115,40 @@ export async function fetchTTSWithRetry(
       });
 
       if (!response.ok) {
-        throw new Error(`TTS request failed: ${response.status}`);
+        const errorText = await response.text();
+        console.error('TTS API error:', response.status, errorText);
+        throw new Error(`TTS request failed: ${response.status} - ${errorText}`);
+      }
+
+      // Check content type before parsing
+      const contentType = response.headers.get('content-type');
+      console.log('TTS response content-type:', contentType);
+      
+      if (contentType && contentType.includes('application/json')) {
+        // API returned JSON error instead of audio
+        const errorData = await response.json();
+        throw new Error(`TTS API returned error: ${JSON.stringify(errorData)}`);
       }
 
       const blob = await response.blob();
       
+      console.log('TTS blob received:', {
+        size: blob.size,
+        type: blob.type,
+        isValid: blob.size > 0 && blob.type.includes('audio')
+      });
+      
       if (!blob || blob.size === 0) {
         throw new Error('Empty audio blob received');
+      }
+      
+      // Verify blob is audio
+      if (!blob.type.includes('audio')) {
+        console.warn('Unexpected blob type:', blob.type);
+        // Try to create proper audio blob
+        const properBlob = new Blob([blob], { type: 'audio/mpeg' });
+        ttsCache.set(options, properBlob);
+        return properBlob;
       }
 
       // Cache successful response

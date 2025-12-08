@@ -5,6 +5,7 @@ import { SettingsProvider } from "./settings-provider";
 import { AppShell } from "./app-shell";
 import { SwRegister } from "./sw-register";
 import { ErrorBoundary } from "../lib/ErrorBoundary";
+import { DiscreetTitle } from "./DiscreetTitle";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -40,6 +41,7 @@ export default function RootLayout({
       >
         <ErrorBoundary>
           <SettingsProvider>
+            <DiscreetTitle />
             <SwRegister />
             <AppShell>{children}</AppShell>
           </SettingsProvider>

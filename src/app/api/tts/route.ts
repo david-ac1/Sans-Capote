@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
     const { 
       text, 
       language = 'en',
+      voiceId, // Accept voice ID from client
       voiceSettings = null // Accept custom voice settings from sentiment analysis
     } = await req.json();
     
@@ -43,18 +44,25 @@ export async function POST(req: NextRequest) {
       );
     }
     
-    // Select voice based on language
-    const voiceId = language === 'fr' 
-      ? process.env.ELEVENLABS_VOICE_ID_FR 
-      : process.env.ELEVENLABS_VOICE_ID_EN;
+    // Use provided voiceId or fall back to environment variables
+    const finalVoiceId = voiceId || (
+      language === 'fr' 
+        ? process.env.ELEVENLABS_VOICE_ID_FR 
+        : process.env.ELEVENLABS_VOICE_ID_EN
+    );
 
-    if (!voiceId) {
+    if (!finalVoiceId) {
       console.error(`TTS Error: Voice ID not configured for language: ${language}`);
+      console.error('Available env vars:', {
+        ELEVENLABS_VOICE_ID_EN: !!process.env.ELEVENLABS_VOICE_ID_EN,
+        ELEVENLABS_VOICE_ID_FR: !!process.env.ELEVENLABS_VOICE_ID_FR,
+        providedVoiceId: !!voiceId,
+      });
       return NextResponse.json(
         { 
           error: "Voice for selected language is not configured.",
           details: process.env.NODE_ENV === 'development' 
-            ? `Missing ELEVENLABS_VOICE_ID_${language.toUpperCase()}` 
+            ? `Missing voice ID for ${language}` 
             : undefined
         },
         { status: 503 }
@@ -68,8 +76,16 @@ export async function POST(req: NextRequest) {
       style: 0.4, // Added style parameter for emotional expression
     };
 
+    console.log('Making ElevenLabs API request:', {
+      voiceId: finalVoiceId,
+      textLength: sanitizedText.length,
+      language,
+      hasApiKey: !!process.env.ELEVENLABS_API_KEY,
+      apiKeyPrefix: process.env.ELEVENLABS_API_KEY?.substring(0, 6),
+    });
+
     const response = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+      `https://api.elevenlabs.io/v1/text-to-speech/${finalVoiceId}`,
       {
         method: 'POST',
         headers: {
@@ -86,19 +102,34 @@ export async function POST(req: NextRequest) {
 
     if (!response.ok) {
       const error = await response.text();
-      console.error('ElevenLabs API error:', error);
-      throw new Error('Failed to generate speech');
+      console.error('ElevenLabs API error:', response.status, error);
+      throw new Error(`Failed to generate speech: ${response.status}`);
     }
 
+    // Get the audio blob from ElevenLabs
     const audioBlob = await response.blob();
-    const audioBuffer = await audioBlob.arrayBuffer();
-    const audioBase64 = Buffer.from(audioBuffer).toString('base64');
-
-    return NextResponse.json({ audio: audioBase64 });
+    
+    // Return the audio directly as an MP3 stream
+    return new NextResponse(audioBlob, {
+      status: 200,
+      headers: {
+        'Content-Type': 'audio/mpeg',
+        'Content-Length': audioBlob.size.toString(),
+        'X-RateLimit-Remaining': remaining.toString(),
+      },
+    });
   } catch (error) {
     console.error('Error in TTS API:', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      hasApiKey: !!process.env.ELEVENLABS_API_KEY,
+    });
     return NextResponse.json(
-      { error: 'Error generating speech' },
+      { 
+        error: 'Error generating speech',
+        details: error instanceof Error ? error.message : String(error)
+      },
       { status: 500 }
     );
   }

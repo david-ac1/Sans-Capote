@@ -18,7 +18,7 @@ const NAV_ITEMS = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname() || "/";
-  const { language, countryCode: _countryCode } = useSettings();
+  const { language, countryCode: _countryCode, discreetMode } = useSettings();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
@@ -148,8 +148,12 @@ export function AppShell({ children }: { children: ReactNode }) {
               : 'This tool does not replace a doctor. In an emergency, go to the nearest clinic or hospital.'}
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-2 text-xs text-[#64748b]">
-            <span className="font-semibold">Ending AIDS by 2030</span>
-            <span className="hidden sm:inline">•</span>
+            {!discreetMode && (
+              <>
+                <span className="font-semibold">Ending AIDS by 2030</span>
+                <span className="hidden sm:inline">•</span>
+              </>
+            )}
             <span>Powered by ElevenLabs and Google Cloud</span>
             <span className="hidden sm:inline">•</span>
             <span>Built by David Chukwuebuka Achibiri</span>
