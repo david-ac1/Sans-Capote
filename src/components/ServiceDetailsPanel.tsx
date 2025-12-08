@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { EnrichedServiceEntry } from '@/lib/places-api';
 import { submitServiceRating, getServiceRatings, getServiceRatingComments, type ServiceRatingAggregate } from '@/lib/supabase';
 
@@ -10,6 +10,7 @@ interface ServiceDetailsPanelProps {
   onClose: () => void;
   userLocation?: { lat: number; lng: number } | null;
   isLoading?: boolean;
+  isDraggable?: boolean;
 }
 
 interface UserRating {
@@ -56,6 +57,7 @@ export default function ServiceDetailsPanel({
   onClose,
   userLocation,
   isLoading = false,
+  isDraggable = false,
 }: ServiceDetailsPanelProps) {
   const [showRatingForm, setShowRatingForm] = useState(false);
   const [userRating, setUserRating] = useState<UserRating>({
@@ -79,6 +81,12 @@ export default function ServiceDetailsPanel({
   const [smsSuccess, setSmsSuccess] = useState(false);
   const [smsError, setSmsError] = useState<string | null>(null);
 
+  // Drag state
+  const [isDragging, setIsDragging] = useState(false);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const dragRef = useRef<HTMLDivElement>(null);
+  const startPosRef = useRef({ x: 0, y: 0, mouseX: 0, mouseY: 0 });
+
   // Load community ratings when service changes
   useEffect(() => {
     async function loadRatings() {
@@ -92,6 +100,53 @@ export default function ServiceDetailsPanel({
     }
     loadRatings();
   }, [service.id]);
+
+  // Handle drag events
+  useEffect(() => {
+    if (!isDraggable) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging) return;
+      
+      const deltaX = e.clientX - startPosRef.current.mouseX;
+      const deltaY = e.clientY - startPosRef.current.mouseY;
+      
+      setPosition({
+        x: startPosRef.current.x + deltaX,
+        y: startPosRef.current.y + deltaY,
+      });
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, isDraggable]);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!isDraggable) return;
+    
+    // Only allow dragging from header
+    const target = e.target as HTMLElement;
+    if (!target.closest('[data-drag-handle]')) return;
+    
+    setIsDragging(true);
+    startPosRef.current = {
+      x: position.x,
+      y: position.y,
+      mouseX: e.clientX,
+      mouseY: e.clientY,
+    };
+  };
 
   const notes = language === 'fr' ? service.notesFr : service.notesEn;
   const isOpen = service.realTimeStatus?.isOpen;
@@ -230,9 +285,23 @@ export default function ServiceDetailsPanel({
   ];
 
   return (
-    <div className="bg-white rounded-lg shadow-xl overflow-hidden flex flex-col h-full max-h-[90vh] lg:max-h-[85vh]">
+    <div 
+      ref={dragRef}
+      className="bg-white rounded-lg shadow-xl overflow-hidden flex flex-col h-full"
+      style={isDraggable ? {
+        position: 'relative',
+        transform: `translate(${position.x}px, ${position.y}px)`,
+        cursor: isDragging ? 'grabbing' : 'auto',
+        transition: isDragging ? 'none' : 'transform 0.2s ease-out',
+      } : undefined}
+      onMouseDown={handleMouseDown}
+    >
       {/* Header */}
-      <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 p-4 text-white flex-shrink-0">
+      <div 
+        data-drag-handle
+        className="bg-gradient-to-r from-emerald-600 to-emerald-700 p-4 text-white flex-shrink-0"
+        style={{ cursor: isDraggable ? 'grab' : 'default' }}
+      >
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <h2 className="text-xl font-bold mb-1">{service.name}</h2>
@@ -243,13 +312,20 @@ export default function ServiceDetailsPanel({
           </div>
           <button
             onClick={onClose}
-            className="text-white hover:bg-white/20 rounded-full p-2 transition-colors"
+            className="text-white hover:bg-white/20 rounded-full p-2 transition-colors z-10"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
+
+        {/* Drag indicator */}
+        {isDraggable && (
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 flex gap-1 opacity-50">
+            <div className="w-8 h-1 bg-white rounded-full"></div>
+          </div>
+        )}
 
         {/* Status badge */}
         {isOpen !== undefined && (
@@ -269,7 +345,7 @@ export default function ServiceDetailsPanel({
       </div>
 
       {/* Content - with explicit flex-1 and overflow */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4" style={{ minHeight: 0 }}>
+      <div className="flex-1 overflow-y-scroll p-4 space-y-4" style={{ minHeight: 0 }}>
         {/* Loading skeleton */}
         {isLoading && (
           <div className="space-y-4 animate-pulse">

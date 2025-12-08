@@ -26,6 +26,91 @@ const COUNTRY_CENTERS: Record<string, { lat: number; lng: number; zoom: number }
   GH: { lat: 5.6037, lng: -0.1870, zoom: 7 }, // Ghana (Accra)
 };
 
+// Helper function to check if a service is currently open
+function isServiceOpen(service: EnrichedServiceEntry): boolean {
+  // First check Google Places real-time status
+  if (service.realTimeStatus?.isOpen !== undefined) {
+    return service.realTimeStatus.isOpen;
+  }
+  
+  // Fallback to parsing hours string
+  if (!service.hours) {
+    // Assume open if we have no hours data (24/7 or unknown)
+    return true;
+  }
+  
+  const now = new Date();
+  const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
+  const currentTime = currentHour * 60 + currentMinute; // Total minutes since midnight
+  
+  const hoursStr = service.hours.toLowerCase();
+  
+  // Check for 24/7
+  if (hoursStr.includes('24/7') || hoursStr.includes('24 hours') || hoursStr.includes('24h')) {
+    return true;
+  }
+  
+  // Parse common patterns like "Mon-Fri 8am-5pm" or "Mon-Sat 9am-5pm"
+  const dayNames = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+  const currentDayName = dayNames[currentDay];
+  
+  // Check if today is mentioned in the hours string
+  const hasDayRange = hoursStr.match(/(mon|tue|wed|thu|fri|sat|sun)(?:-|\s*to\s*)(mon|tue|wed|thu|fri|sat|sun)/);
+  const hasSingleDay = hoursStr.match(/(mon|tue|wed|thu|fri|sat|sun)(?!-)/);
+  
+  let isToday = false;
+  
+  if (hasDayRange) {
+    const [_, startDay, endDay] = hasDayRange;
+    const startIndex = dayNames.indexOf(startDay);
+    const endIndex = dayNames.indexOf(endDay);
+    
+    if (startIndex <= endIndex) {
+      isToday = currentDay >= startIndex && currentDay <= endIndex;
+    } else {
+      // Wraps around (e.g., Sat-Mon)
+      isToday = currentDay >= startIndex || currentDay <= endIndex;
+    }
+  } else if (hasSingleDay) {
+    isToday = hoursStr.includes(currentDayName);
+  } else {
+    // If no day specified, assume it applies to all days
+    isToday = true;
+  }
+  
+  if (!isToday) {
+    return false;
+  }
+  
+  // Parse time ranges like "8am-5pm" or "9:00-17:00"
+  const timeMatch = hoursStr.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s*-\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/);
+  
+  if (timeMatch) {
+    const [_, startHourStr, startMinStr = '0', startPeriod, endHourStr, endMinStr = '0', endPeriod] = timeMatch;
+    
+    let startHour = parseInt(startHourStr);
+    let endHour = parseInt(endHourStr);
+    const startMin = parseInt(startMinStr);
+    const endMin = parseInt(endMinStr);
+    
+    // Convert to 24-hour format
+    if (startPeriod === 'pm' && startHour !== 12) startHour += 12;
+    if (startPeriod === 'am' && startHour === 12) startHour = 0;
+    if (endPeriod === 'pm' && endHour !== 12) endHour += 12;
+    if (endPeriod === 'am' && endHour === 12) endHour = 0;
+    
+    const startTime = startHour * 60 + startMin;
+    const endTime = endHour * 60 + endMin;
+    
+    return currentTime >= startTime && currentTime <= endTime;
+  }
+  
+  // If we can't parse, assume open (better UX than filtering out)
+  return true;
+}
+
 export default function NavigatorPage() {
   const { language, countryCode, setCountryCode } = useSettings();
   
@@ -131,6 +216,7 @@ export default function NavigatorPage() {
     if (filters.serviceTypes.length > 0) {
       results = results.filter((service) => {
         const notes = (language === 'fr' ? service.notesFr : service.notesEn).toLowerCase();
+        
         return filters.serviceTypes.some((type) => {
           // Map service types to search terms
           const searchTerms: Record<string, string[]> = {
@@ -139,9 +225,17 @@ export default function NavigatorPage() {
             testing: ['test', 'testing', 'dépistage', 'screening', 'hiv test'],
             treatment: ['treatment', 'traitement', 'art', 'antiretroviral', 'arv'],
             counseling: ['counsel', 'conseil', 'support', 'therapy', 'psycho'],
-            lgbtqia: ['lgbt', 'lgbtq', 'gay', 'lesbian', 'trans', 'queer', 'friendly', 'inclusive'],
+            lgbtqia: ['lgbt', 'lgbtq', 'gay', 'lesbian', 'trans', 'queer', 'friendly', 'inclusive', 'welcoming', 'safe space', 'affirming', 'non-discriminat'],
           };
           const terms = searchTerms[type] || [type];
+          
+          // For inclusive filter, also check lgbtqiaFriendly score
+          if (type === 'lgbtqia') {
+            const hasInclusiveScore = service.lgbtqiaFriendly && service.lgbtqiaFriendly >= 3;
+            const hasInclusiveTerms = terms.some(term => notes.includes(term));
+            return hasInclusiveScore || hasInclusiveTerms;
+          }
+          
           return terms.some(term => notes.includes(term));
         });
       });
@@ -150,7 +244,7 @@ export default function NavigatorPage() {
     // Open now filter
     if (filters.openNow) {
       results = results.filter((service) => {
-        return service.realTimeStatus?.isOpen === true;
+        return isServiceOpen(service);
       });
     }
 
@@ -414,7 +508,7 @@ export default function NavigatorPage() {
     { value: 'testing', label: language === 'fr' ? 'Dépistage' : 'Testing' },
     { value: 'treatment', label: language === 'fr' ? 'Traitement' : 'Treatment' },
     { value: 'counseling', label: language === 'fr' ? 'Conseil' : 'Counseling' },
-    { value: 'lgbtqia', label: language === 'fr' ? 'LGBTQIA+' : 'LGBTQIA+ Friendly' },
+    { value: 'lgbtqia', label: language === 'fr' ? 'Inclusif' : 'Inclusive' },
   ];
 
   // Detect country from coordinates
@@ -602,6 +696,41 @@ export default function NavigatorPage() {
                 </svg>
               </div>
 
+              {/* Results counter */}
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-zinc-400">
+                  {filteredServices.length === 0 ? (
+                    language === 'fr' ? '❌ Aucun service trouvé' : '❌ No services found'
+                  ) : (
+                    <>
+                      {filteredServices.length} {language === 'fr' ? 'service(s) trouvé(s)' : 'service(s) found'}
+                      {filters.openNow && (
+                        <span className="ml-2 text-green-400">
+                          🟢 {language === 'fr' ? 'ouvert(s) maintenant' : 'open now'}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </span>
+                {(filters.serviceTypes.length > 0 || filters.openNow || filters.rating > 0 || filters.communityRating > 0 || filters.judgementFree || searchQuery) && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setFilters({
+                        serviceTypes: [],
+                        openNow: false,
+                        rating: 0,
+                        communityRating: 0,
+                        judgementFree: false,
+                      });
+                    }}
+                    className="text-emerald-400 hover:text-emerald-300 transition-colors"
+                  >
+                    {language === 'fr' ? 'Réinitialiser' : 'Clear filters'}
+                  </button>
+                )}
+              </div>
+
               <div className="flex flex-wrap gap-2">
                 {/* Country selector with visual feedback */}
                 <div className="relative">
@@ -688,11 +817,11 @@ export default function NavigatorPage() {
                   onClick={() => setFilters((prev) => ({ ...prev, judgementFree: !prev.judgementFree }))}
                   className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                     filters.judgementFree
-                      ? 'bg-purple-600 text-white'
+                      ? 'bg-amber-600 text-white'
                       : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
                   }`}
                 >
-                  {language === 'fr' ? '🤝 Sans jugement' : '🤝 Judgement-free'}
+                  {language === 'fr' ? '🤝 Sans jugement' : '🤝 Non-Judgmental'}
                 </button>
 
                 {/* Location button */}
@@ -743,21 +872,22 @@ export default function NavigatorPage() {
 
               {/* Service details panel (overlay on mobile, sidebar on desktop) */}
               {selectedService && (
-                <div className="absolute top-4 right-4 w-full max-w-md z-10 hidden lg:block">
+                <div className="absolute top-4 right-4 w-full max-w-md h-[calc(100vh-2rem)] z-10 hidden lg:block">
                   <ServiceDetailsPanel
                     service={selectedService}
                     language={language}
                     onClose={() => setSelectedService(null)}
                     userLocation={userLocation}
                     isLoading={isLoading}
+                    isDraggable={true}
                   />
                 </div>
               )}
 
               {/* Mobile details panel (full screen) */}
               {selectedService && (
-                <div className="absolute inset-0 bg-black/50 z-20 lg:hidden">
-                  <div className="absolute bottom-0 left-0 right-0 h-[85vh] flex flex-col">
+                <div className="absolute inset-0 bg-black/50 z-20 lg:hidden flex items-end">
+                  <div className="w-full h-[85vh] flex flex-col">
                     <ServiceDetailsPanel
                       service={selectedService}
                       language={language}

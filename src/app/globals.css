@@ -86,3 +86,28 @@ button:hover, a.button:hover {
 .animate-fade-in {
   animation: fade-in 0.6s ease-out;
 }
+
+/* Custom scrollbar styling */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #008080 #e5e5e5;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #008080;
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #006666;
+}
