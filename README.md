@@ -127,10 +127,17 @@ Open [http://localhost:3000](http://localhost:3000) and navigate to **Crisis** o
 
 ## 💡 The Problem: Why This Matters
 
+**The Silence That Kills:**
+
+Imagine a 19-year-old girl who thinks she might have HIV. She can't ask her mother. She can't ask her friends. She can't go to a clinic without risking judgment or gossip in her community. So she stays silent—while the virus progresses, while her anxiety grows, while preventable transmission continues.
+
+This isn't a hypothetical scenario. **It's the reality for millions of young people across Sub-Saharan Africa.**
+
 **Global Challenge:**
 - 37.7M people living with HIV globally; 80% don't have access to preventive services
 - In sub-Saharan Africa, **stigma and privacy concerns** prevent people from seeking health information
 - Low-literacy users, poor internet, and misinformation make voice-based education critical
+- **Young people (15-24) account for 30% of new HIV infections**, yet lack safe spaces to ask questions
 
 ### 🎯 Why These Pilot Countries?
 
