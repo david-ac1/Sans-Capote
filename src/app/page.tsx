@@ -8,7 +8,7 @@ import { useState, useEffect } from "react";
 export default function Home() {
   const { language, discreetMode } = useSettings();
 
-  // Testimonial slideshow state
+  // Testimonial data
   const testimonials = [
     {
       quote: "And I thought antibiotics cured HIV.",
@@ -32,15 +32,17 @@ export default function Home() {
     }
   ];
 
-  const [currentTestimonial, setCurrentTestimonial] = useState(0);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const testimonialsPerSlide = 3;
+  const totalSlides = Math.ceil(testimonials.length / testimonialsPerSlide);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
-    }, 5000); // Change every 5 seconds
+      setCurrentSlide((prev) => (prev + 1) % totalSlides);
+    }, 6000); // Change every 6 seconds
 
     return () => clearInterval(interval);
-  }, [testimonials.length]);
+  }, [totalSlides]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F8FAFF] via-[#FFF] to-[#F0F4FF]">
@@ -225,9 +227,9 @@ export default function Home() {
                 )
               ) : (
                 language === 'en' ? (
-                  <>How we're <span className="text-[#008080]">transforming wellness</span> for you</>
+                  <>How we're <span className="text-[#008080]">transforming sexual health</span> for you</>
                 ) : (
-                  <>Comment nous <span className="text-[#008080]">transformons le bien-être</span> pour vous</>
+                  <>Comment nous <span className="text-[#008080]">transformons la santé sexuelle</span> pour vous</>
                 )
               )}
             </h2>
@@ -365,8 +367,8 @@ export default function Home() {
         </section>
 
         {/* Testimonials Section */}
-        <section className="mb-12 max-w-3xl mx-auto mt-16">
-          <div className="text-center mb-4">
+        <section className="mb-12 max-w-6xl mx-auto mt-16">
+          <div className="text-center mb-8">
             <h2 className="text-2xl font-bold text-[#1a1a2e] mb-2">
               {language === 'en' ? 'What People Are Saying' : 'Ce Que Disent Les Gens'}
             </h2>
@@ -375,41 +377,48 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="relative bg-gradient-to-br from-[#008080] to-[#007070] rounded-2xl shadow-xl p-6 md:p-8 overflow-hidden">
-            {/* Decorative elements */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
-            <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2"></div>
+          {/* Slideshow with light background */}
+          <div className="bg-white rounded-2xl p-8 md:p-12 shadow-lg">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 transition-all duration-500" key={currentSlide}>
+              {testimonials
+                .slice(currentSlide * testimonialsPerSlide, currentSlide * testimonialsPerSlide + testimonialsPerSlide)
+                .map((testimonial, index) => (
+                <div
+                  key={index}
+                  className="flex flex-col items-center text-center space-y-4 p-6"
+                >
+                  {/* Icon placeholder - using initials with teal gradient */}
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#008080] to-[#006666] flex items-center justify-center shadow-md">
+                    <span className="text-2xl font-bold text-white">
+                      {testimonial.author.charAt(0)}
+                    </span>
+                  </div>
 
-            {/* Quote icon */}
-            <div className="absolute top-4 left-4 text-white/20 text-4xl font-serif">"</div>
+                  {/* Author name */}
+                  <h3 className="text-gray-900 font-semibold text-lg">
+                    {testimonial.author}
+                  </h3>
 
-            {/* Testimonial content */}
-            <div className="relative z-10 min-h-[120px] flex flex-col items-center justify-center text-center">
-              <div 
-                key={currentTestimonial}
-                className="animate-fade-in"
-              >
-                <p className="text-base md:text-lg text-white font-medium mb-3 leading-relaxed max-w-xl">
-                  "{testimonials[currentTestimonial].quote}"
-                </p>
-                <p className="text-white/80 font-semibold text-sm">
-                  — {testimonials[currentTestimonial].author}
-                </p>
-              </div>
+                  {/* Quote */}
+                  <p className="text-gray-600 text-sm leading-relaxed">
+                    "{testimonial.quote}"
+                  </p>
+                </div>
+              ))}
             </div>
 
             {/* Navigation dots */}
-            <div className="relative z-10 flex justify-center gap-2 mt-3">
-              {testimonials.map((_, index) => (
+            <div className="flex justify-center gap-2 mt-8">
+              {Array.from({ length: totalSlides }).map((_, index) => (
                 <button
                   key={index}
-                  onClick={() => setCurrentTestimonial(index)}
-                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                    index === currentTestimonial
-                      ? 'bg-white w-6'
-                      : 'bg-white/40 hover:bg-white/60'
+                  onClick={() => setCurrentSlide(index)}
+                  className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
+                    currentSlide === index
+                      ? "bg-[#008080] w-8"
+                      : "bg-gray-300 hover:bg-gray-400"
                   }`}
-                  aria-label={`Go to testimonial ${index + 1}`}
+                  aria-label={`Go to testimonial slide ${index + 1}`}
                 />
               ))}
             </div>
