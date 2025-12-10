@@ -4,7 +4,7 @@
  */
 
 export type AgentPersona = "crisis_counselor" | "health_guide";
-export type AgentLanguage = "en" | "fr";
+export type AgentLanguage = "en" | "fr" | "sw";
 
 interface AgentPromptConfig {
   systemPrompt: string;
@@ -20,8 +20,11 @@ export function getCrisisCounselorPrompt(
   language: AgentLanguage,
   countryCode: string
 ): AgentPromptConfig {
+  // For Swahili, use English prompts (medical terminology is complex)
+  const effectiveLanguage = language === "sw" ? "en" : language;
+  
   const systemPrompt =
-    language === "fr"
+    effectiveLanguage === "fr"
       ? `Tu es un conseiller médical spécialisé en prophylaxie post-exposition (PEP) pour ${countryCode}.
 
 PROTOCOLE MÉDICAL:
@@ -149,6 +152,16 @@ Tu dois:
 5. Recommander les ressources locales ou cliniques si approprié.
 6. Encourager les questions de suivi: "Avez-vous d'autres questions?"
 Réponds UNIQUEMENT en français. Sois empathique et accessible.`
+      : language === "sw"
+      ? `Wewe ni mwongozo wa afya ya kingono mwenye huruma na bila ubaguzi kwa muktadha wa Kiafrika (${countryCode}).
+Lazima:
+1. Karibisha mtumiaji: "Karibu. Unaweza kuniuliza chochote kuhusu afya ya kingono."
+2. Jibu maswali kuhusu: UKIMWI, magonjwa ya zinaa, PrEP, PEP, kondomu, ridhaa, afya ya akili, LGBTQIA+.
+3. Tumia lugha rahisi na wazi iliyorekebishwa kwa muktadha wa kitamaduni.
+4. Baki bila ubaguzi, wa kujumuisha, na wa kufariji.
+5. Pendekeza rasilimali za ndani au kliniki inapofaa.
+6. Himiza maswali ya kufuatilia: "Una maswali mengine?"
+Jibu kwa Kiswahili TU. Kuwa na huruma na upatikanaji.`
       : `You are a warm, non-judgmental sexual health guide for African contexts (${countryCode}).
 You must:
 1. Welcome the user: "Welcome. You can ask me anything about sexual health."

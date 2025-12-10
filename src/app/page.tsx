@@ -59,10 +59,15 @@ export default function Home() {
                       Take Control of Your <span className="text-[#008080]">Personal Health</span><br />
                       with <span className="text-[#008080]">Private Wellness Support</span>
                     </>
-                  ) : (
+                  ) : language === 'fr' ? (
                     <>
                       Prenez le Contrôle de Votre <span className="text-[#008080]">Santé Personnelle</span><br />
                       avec <span className="text-[#008080]">Soutien au Bien-être Privé</span>
+                    </>
+                  ) : (
+                    <>
+                      Dhibiti <span className="text-[#008080]">Afya Yako Binafsi</span><br />
+                      na <span className="text-[#008080]">Msaada wa Faragha wa Ustawi</span>
                     </>
                   )
                 ) : (
@@ -71,10 +76,15 @@ export default function Home() {
                       Take Charge of Your <span className="text-[#008080]">Sexual Health</span> Now<br />
                       and Streamline Your <span className="text-[#008080]">Healthcare Journey</span>
                     </>
-                  ) : (
+                  ) : language === 'fr' ? (
                     <>
                       Prenez le Contrôle de Votre <span className="text-[#008080]">Santé Sexuelle</span> Maintenant<br />
                       et Rationalisez Votre <span className="text-[#008080]">Parcours de Santé</span>
+                    </>
+                  ) : (
+                    <>
+                      Dhibiti <span className="text-[#008080]">Afya Yako ya Kingono</span> Sasa<br />
+                      na Rahisisha <span className="text-[#008080]">Safari Yako ya Afya</span>
                     </>
                   )
                 )}
@@ -84,11 +94,15 @@ export default function Home() {
                 {discreetMode ? (
                   language === 'en'
                     ? 'Get personalized wellness guidance with complete privacy. AI-powered support for your health journey, available 24/7.'
-                    : 'Obtenez des conseils de bien-être personnalisés en toute confidentialité. Soutien alimenté par IA pour votre parcours de santé, disponible 24/7.'
+                    : language === 'fr'
+                    ? 'Obtenez des conseils de bien-être personnalisés en toute confidentialité. Soutien alimenté par IA pour votre parcours de santé, disponible 24/7.'
+                    : 'Pata mwongozo wa ustawi wa kibinafsi na faragha kamili. Msaada unaotumia AI kwa safari yako ya afya, inapatikana 24/7.'
                 ) : (
                   language === 'en'
                     ? 'Leverage tailored digital strategies to improve engagement while supporting your sexual health with Sans Capote\'s private, AI-powered guidance.'
-                    : 'Profitez de stratégies numériques sur mesure pour améliorer l\'engagement tout en soutenant votre santé sexuelle avec les conseils privés et alimentés par l\'IA de Sans Capote.'
+                    : language === 'fr'
+                    ? 'Profitez de stratégies numériques sur mesure pour améliorer l\'engagement tout en soutenant votre santé sexuelle avec les conseils privés et alimentés par l\'IA de Sans Capote.'
+                    : 'Tumia mikakati ya kidijitali iliyoratibiwa kuboresha ushirikiano wakati ukisaidia afya yako ya kingono na mwongozo wa faragha wa AI wa Sans Capote.'
                 )}
               </p>
             </div>
@@ -99,13 +113,13 @@ export default function Home() {
                 className="inline-flex items-center gap-2 bg-[#008080] text-white px-6 py-3 rounded-full font-semibold text-sm hover:bg-[#007070] transition-all hover:scale-105 shadow-lg hover:shadow-xl"
               >
                 <Sparkles className="w-4 h-4" />
-                {language === 'en' ? 'Get Started' : 'Commencer'}
+                {language === 'en' ? 'Get Started' : language === 'fr' ? 'Commencer' : 'Anza'}
               </a>
               <a
                 href="/resources"
                 className="inline-flex items-center gap-2 bg-white text-[#008080] border-2 border-[#008080] px-6 py-3 rounded-full font-semibold text-sm hover:bg-[#F8FAFF] transition-all shadow-md hover:shadow-lg"
               >
-                {language === 'en' ? 'Learn More' : 'En Savoir Plus'}
+                {language === 'en' ? 'Learn More' : language === 'fr' ? 'En Savoir Plus' : 'Jifunze Zaidi'}
               </a>
             </div>
 
@@ -114,19 +128,19 @@ export default function Home() {
               <div className="flex items-center gap-2">
                 <Shield className="w-4 h-4 text-[#10b981]" />
                 <span className="text-xs font-medium text-[#64748b]">
-                  {language === 'en' ? '100% Private' : '100% Privé'}
+                  {language === 'en' ? '100% Private' : language === 'fr' ? '100% Privé' : '100% ya Faragha'}
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <Users className="w-4 h-4 text-[#10b981]" />
                 <span className="text-xs font-medium text-[#64748b]">
-                  {language === 'en' ? '24/7 Support' : 'Support 24/7'}
+                  {language === 'en' ? '24/7 Support' : language === 'fr' ? 'Support 24/7' : 'Msaada 24/7'}
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-[#10b981]" />
                 <span className="text-xs font-medium text-[#64748b]">
-                  {language === 'en' ? 'AI-Powered' : 'Propulsé par IA'}
+                  {language === 'en' ? 'AI-Powered' : language === 'fr' ? 'Propulsé par IA' : 'Inatumia AI'}
                 </span>
               </div>
             </div>
@@ -144,11 +158,11 @@ export default function Home() {
                   <div className="flex-1">
                     <h3 className="font-bold text-[#1a1a2e] mb-1">
                       {discreetMode 
-                        ? (language === 'en' ? 'Personal Advisor' : 'Conseiller Personnel')
-                        : (language === 'en' ? 'AI Health Guide' : 'Guide Santé IA')}
+                        ? (language === 'en' ? 'Personal Advisor' : language === 'fr' ? 'Conseiller Personnel' : 'Mshauri Binafsi')
+                        : (language === 'en' ? 'AI Health Guide' : language === 'fr' ? 'Guide Santé IA' : 'Mwongozo wa AI wa Afya')}
                     </h3>
                     <p className="text-sm text-[#64748b]">
-                      {language === 'en' ? 'Private consultations' : 'Consultations privées'}
+                      {language === 'en' ? 'Private consultations' : language === 'fr' ? 'Consultations privées' : 'Mashauriano ya faragha'}
                     </p>
                   </div>
                 </div>
@@ -163,11 +177,11 @@ export default function Home() {
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-semibold text-[#64748b]">
                       {discreetMode
-                        ? (language === 'en' ? 'Care Finder' : 'Trouver Soins')
-                        : (language === 'en' ? 'Services Navigator' : 'Navigateur Services')}
+                        ? (language === 'en' ? 'Care Finder' : language === 'fr' ? 'Trouver Soins' : 'Kipokezi cha Huduma')
+                        : (language === 'en' ? 'HIV Services Navigator' : language === 'fr' ? 'Navigateur Services' : 'Kiongozi cha Huduma za UKIMWI')}
                     </span>
                     <span className="text-xs bg-[#D4F4DD] text-[#059669] px-3 py-1 rounded-full font-semibold">
-                      {language === 'en' ? 'Active' : 'Actif'}
+                      {language === 'en' ? 'Active' : language === 'fr' ? 'Actif' : 'Inaendelea'}
                     </span>
                   </div>
                   <div className="flex items-center gap-3">
@@ -176,10 +190,10 @@ export default function Home() {
                     </div>
                     <div>
                       <p className="text-2xl font-bold text-[#1a1a2e]">
-                        {language === 'en' ? 'Find Care' : 'Trouver Soins'}
+                        {language === 'en' ? 'Find Care' : language === 'fr' ? 'Trouver Soins' : 'Tafuta Huduma'}
                       </p>
                       <p className="text-xs text-[#64748b]">
-                        {language === 'en' ? 'Clinics near you' : 'Cliniques près de vous'}
+                        {language === 'en' ? 'Clinics near you' : language === 'fr' ? 'Cliniques près de vous' : 'Kliniki karibu nawe'}
                       </p>
                     </div>
                   </div>
@@ -222,14 +236,18 @@ export default function Home() {
               {discreetMode ? (
                 language === 'en' ? (
                   <>Your <span className="text-[#008080]">wellness tools</span> in one place</>
-                ) : (
+                ) : language === 'fr' ? (
                   <>Vos <span className="text-[#008080]">outils de bien-être</span> en un seul endroit</>
+                ) : (
+                  <>Zana zako za <span className="text-[#008080]">ustawi</span> mahali pamoja</>
                 )
               ) : (
                 language === 'en' ? (
                   <>How we're <span className="text-[#008080]">transforming sexual health</span> for you</>
-                ) : (
+                ) : language === 'fr' ? (
                   <>Comment nous <span className="text-[#008080]">transformons la santé sexuelle</span> pour vous</>
+                ) : (
+                  <>Jinsi tunavyo<span className="text-[#008080]">badilisha afya ya kingono</span> kwa ajili yako</>
                 )
               )}
             </h2>
@@ -237,11 +255,15 @@ export default function Home() {
               {discreetMode ? (
                 language === 'en'
                   ? 'Comprehensive wellness tools designed with your privacy and well-being in mind'
-                  : 'Des outils de bien-être complets conçus en pensant à votre vie privée et à votre bien-être'
+                  : language === 'fr'
+                  ? 'Des outils de bien-être complets conçus en pensant à votre vie privée et à votre bien-être'
+                  : 'Zana za ustawi kamili zilizoundwa kwa kuzingatia faragha na ustawi wako'
               ) : (
                 language === 'en' 
                   ? 'Comprehensive sexual health tools designed with your privacy and well-being in mind'
-                  : 'Des outils de santé sexuelle complets conçus en pensant à votre vie privée et à votre bien-être'
+                  : language === 'fr'
+                  ? 'Des outils de santé sexuelle complets conçus en pensant à votre vie privée et à votre bien-être'
+                  : 'Zana za afya ya kingono kamili zilizoundwa kwa kuzingatia faragha na ustawi wako'
               )}
             </p>
           </div>
@@ -370,10 +392,10 @@ export default function Home() {
         <section className="mb-12 max-w-6xl mx-auto mt-16">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold text-[#1a1a2e] mb-2">
-              {language === 'en' ? 'What People Are Saying' : 'Ce Que Disent Les Gens'}
+              {language === 'en' ? 'What People Are Saying' : language === 'fr' ? 'Ce Que Disent Les Gens' : 'Watu Wanasema Nini'}
             </h2>
             <p className="text-sm text-[#64748b]">
-              {language === 'en' ? 'Real voices from our community' : 'Vraies voix de notre communauté'}
+              {language === 'en' ? 'Real voices from our community' : language === 'fr' ? 'Vraies voix de notre communauté' : 'Sauti halisi kutoka jamii yetu'}
             </p>
           </div>
 

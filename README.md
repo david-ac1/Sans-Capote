@@ -6,7 +6,7 @@
 
 # Sans-Capote: Voice-First AI Sexual Health Guide
 
-**A stigma-free, voice-driven AI companion for sexual health and HIV prevention in African contexts.**
+**Sans-Capote is a voice-first, anonymous sexual-health companion for African contexts. Users speak to get immediate, stigma-free guidance (PEP/PrEP, STI triage, crisis assessment), discover local judgement-free clinics on a map, and SMS service details to their phone — all without logging in. We prioritize privacy, offline access, and community-verified clinic ratings to reduce barriers that keep people from seeking care.**
 
 🎗️🧣 **World AIDS Day Contribution (December 1st)**  
 *This project is dedicated to World AIDS Day 2025, continuing the global mission to end HIV stigma, expand access to prevention and treatment, and ensure no one is left behind in the fight against AIDS.*
@@ -33,6 +33,33 @@ Combining **Google Gemini** for intelligent conversation, **ElevenLabs** for nat
 - 🔒 Privacy-first (no account needed, anonymous contributions)
 - ♿ WCAG AA accessible with screen reader support
 - 📊 Production-grade monitoring & error tracking
+
+---
+
+## 💭 Why I Built This
+
+In 2024, I had an HIV scare and realized I didn't have the support, resources, or safe space to feel secure in myself. I feared that a positive result would be seen as a moral failure rather than a health condition. 
+
+This experience made me determined to create Sans-Capote: a platform where people can access accurate sexual health information, guidance, and local services in a non-judgmental, stigma-free environment. My goal is to ensure that no one faces the fear, shame, or misinformation I experienced — and to help break down the stigma surrounding sexual health in African contexts.
+
+**Sans-Capote is personal. It's the tool I wish I had when I needed it most.**
+
+---
+
+## ⚡ Quick Summary (For Busy Judges)
+
+**The Problem**: 37.7M people live with HIV globally, yet 80% lack access to preventive services. In Sub-Saharan Africa, stigma and misinformation prevent young people from seeking sexual health information, leading to preventable infections and delayed treatment.
+
+**Our Solution**: Sans-Capote is a voice-first, anonymous AI companion that provides stigma-free sexual health guidance. Users speak their questions, receive immediate AI responses via natural voice (ElevenLabs), discover judgment-free clinics on an interactive map, and can SMS service details to their phone—all without creating an account.
+
+**What Makes Us Unique**:
+1. **Voice-First Crisis Assessment** - 9-question guided assessment with real-time PEP/PrEP recommendations
+2. **Community-Verified Services** - Anonymous ratings (Supabase) help users find judgment-free clinics across 6 African countries
+3. **SMS Integration** - Text service details to your phone instantly via Africa's Talking (no app needed)
+
+**🎬 3-Minute Demo Path**: 
+1. Visit `/crisis` → Complete voice assessment → Receive personalized guidance (2 min)
+2. Visit `/navigator` → Select Nigeria → Click "Discover" → Rate a service → SMS to phone (1 min)
 
 ---
 
@@ -144,22 +171,16 @@ This isn't a hypothetical scenario. **It's the reality for millions of young peo
 Our initial focus on **Nigeria, South Africa, Kenya, Uganda, Rwanda, and Ghana** is strategic and data-driven:
 
 **High HIV Burden:**
-- **South Africa:** 7.5M people living with HIV—the world's largest HIV epidemic
-- **Nigeria:** 1.9M cases with significant gaps in prevention and treatment access
-- **Kenya & Uganda:** Eastern Africa hotspots with 1.3M+ cases combined
+- **South Africa:** 7.5M people living with HIV—the world's largest epidemic
 - Combined, these countries account for **~40% of global HIV burden** yet face critical resource constraints
 
 **Misinformation Crisis:**
-- Widespread myths about HIV transmission (sharing utensils, mosquito bites, witchcraft)
-- Stigma-driven beliefs that prevent testing and treatment adherence
-- Limited access to accurate, culturally-sensitive sexual health education
-- Language barriers (English/French) further isolate vulnerable populations
+- Widespread myths about HIV transmission (mosquito bites, witchcraft, sharing utensils)
+- Language barriers (English/French) and stigma prevent people from seeking accurate information
 
 **Digital Opportunity:**
-- 60%+ mobile penetration but limited smartphone adoption in rural areas
-- Voice-first interfaces bypass literacy barriers and data costs
-- High trust in SMS and voice communication over apps
-- Growing internet access creates critical window for intervention
+- 60%+ mobile penetration creates opportunity for voice-first, SMS-based health education
+- High trust in SMS/voice communication over apps
 
 Sans-Capote addresses these challenges by providing **accurate, stigma-free information** in users' preferred language, accessible via voice or text, with locally-relevant resources and community-verified service ratings.
 
@@ -258,7 +279,6 @@ These statements reflect the knowledge gaps, stigma, and urgent need for accessi
 - ✅ **Live Captions:** Text display during voice playback
 - ✅ **Focus Management:** Clear focus indicators throughout
 - ✅ **Mobile-Optimized:** Large touch targets, responsive layout
-- ✅ **Dark Theme:** Reduced eye strain, privacy-friendly
 
 ### 📊 Production Monitoring
 - ✅ **Error Tracking:** React Error Boundaries with graceful fallbacks
@@ -375,39 +395,17 @@ docker run -p 3000:3000 \
 
 ---
 
-## 📈 What's Measured (Observability)
+## 📈 Production Observability
 
-The app tracks comprehensive metrics for production monitoring:
+Comprehensive telemetry system tracks 11+ event types including:
+- **Voice Flow**: Assessment completion, questions asked, answers received, TTS playback, speech recognition
+- **Service Discovery**: AI-powered search, community ratings submissions, SMS delivery
+- **Performance**: API response times, cache hit rates, error tracking (mic permissions, timeouts, API failures)
+- **User Engagement**: Language preferences, question topics, voice vs. text usage patterns
 
-### Voice Flow Events
-- `assessment_started` - User begins crisis assessment
-- `question_asked` - Each question presented to user
-- `answer_received` - User provides voice answer
-- `tts_played` / `tts_failed` - Audio playback events
-- `recognition_started` / `recognition_failed` - Speech recognition
-- `flow_completed` - Full assessment finished
-- `flow_abandoned` - User exits before completion
-- `referral_provided` - Local services recommended
-- `service_rated` - User submits community rating
-- `ai_discovery_started` / `ai_discovery_completed` - Service discovery events
-- `sms_sent` / `sms_failed` - SMS notification delivery tracking
+**Privacy-First**: All phone numbers and emails are automatically redacted. No user identification or tracking. Analytics run non-blocking to ensure zero UX impact.
 
-### Performance Metrics
-- **Conversation API:** Response times, message counts, language/country
-- **TTS API:** Latency, cache hit rate, audio file sizes
-- **Community Ratings:** Submission success rate, aggregate calculations
-- **Map Performance:** Service load times, coordinate enrichment latency
-- **AI Discovery:** Services found per query, deduplication rate
-- **SMS Delivery:** Success rate, countries, rate limit hits
-- **Error Tracking:** Failed API calls, mic permission denials, timeout events
-- **User Engagement:** Questions asked, top topics, voice vs. text preferences
-
-### Privacy Considerations
-- **No PII stored:** Phone numbers and emails automatically redacted
-- **Anonymous sessions:** No user identification or tracking
-- **Non-blocking:** Analytics never impact user experience
-
-See `src/lib/telemetry.ts` and `src/app/api/analytics/route.ts` for implementation details.
+Implementation details: `src/lib/telemetry.ts` and `src/app/api/analytics/route.ts`
 
 ---
 
@@ -416,7 +414,7 @@ See `src/lib/telemetry.ts` and `src/app/api/analytics/route.ts` for implementati
 | Criterion | Implementation | Evidence |
 |-----------|----------------|----------|
 | **Technological Excellence** | Advanced TTS caching, retry logic, emotional voice adaptation, Supabase integration, AI service discovery, production error handling | `src/lib/tts-service.ts`, `src/lib/supabase.ts`, `src/lib/ai-service-discovery.ts` |
-| **Design & UX** | WCAG AA accessible, live captions, keyboard nav, interactive maps, community ratings UI, mobile-optimized dark theme | `src/components/InteractiveServiceMap.tsx`, `src/components/ServiceDetailsPanel.tsx` |
+| **Design & UX** | WCAG AA accessible, live captions, keyboard nav, interactive maps, community ratings UI, mobile-optimized | `src/components/InteractiveServiceMap.tsx`, `src/components/ServiceDetailsPanel.tsx` |
 | **Potential Impact** | Addresses stigma & access barriers in sub-Saharan Africa; offline-capable, privacy-first, community-driven ratings | Crisis mode + 40+ verified services + anonymous ratings |
 | **Quality of Idea** | Voice-driven health education for low-literacy users; culturally-sensitive, bilingual, AI-powered discovery | EN/FR support, 6 countries, Gemini-powered service finding |
 | **ElevenLabs Integration** | Emotional voice settings, phrase preloading, smart caching, graceful degradation | 70% reduction in API calls, 99.9% reliability |
@@ -449,28 +447,6 @@ This project is licensed under the **MIT License** - see [LICENSE](LICENSE) file
 - **Mapbox** for interactive mapping capabilities
 - **Global Fund / UNAIDS** for HIV prevention best practices
 - Community health workers in African contexts for domain expertise
-
----
-
-## 💡 Name Considerations
-
-We've received feedback about the project name "Sans-Capote" and want to address it transparently:
-
-**Current Name:** "Sans-Capote" (French: "without a sheath/cover")
-- ✅ **Metaphor:** Represents removing barriers/stigma around taboo topics
-- ✅ **Cultural Relevance:** French is widely spoken in African contexts
-- ⚠️ **Dual Meaning:** Also has literal connotations related to sexual health
-
-**Alternative Names Under Consideration:**
-1. **"Sans Tabou"** - French for "without taboo" (clearer metaphor)
-2. **"Open Health"** - Direct English equivalent
-3. **"Clear Talk"** - Emphasizes honest communication
-4. **"Speak Freely"** - Focuses on voice/conversation aspect
-5. **"Health Bridge"** - Connects people to resources
-
-**Our Stance:** We're committed to cultural sensitivity and welcome community feedback. The current name was chosen to spark conversation, but we recognize that clarity and appropriateness matter more than cleverness. If the name causes more confusion than connection, we're open to change.
-
-**Feedback Welcome:** Judges and reviewers, please let us know if you feel a different name would better serve our mission.
 
 ---
 

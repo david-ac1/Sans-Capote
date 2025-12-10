@@ -36,13 +36,16 @@ export default function SettingsPage() {
           </p>
           <select
             value={language}
-            onChange={(e) =>
-              setLanguage(e.target.value === "fr" ? "fr" : "en")
-            }
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val === "fr" || val === "sw") setLanguage(val);
+              else setLanguage("en");
+            }}
             className="w-full rounded-lg border border-[#222222]/20 bg-white px-3 py-2.5 text-sm text-[#222222] outline-none focus:border-[#008080] transition-colors"
           >
             <option value="en">English</option>
             <option value="fr">Français</option>
+            <option value="sw">Kiswahili</option>
           </select>
         </div>
 

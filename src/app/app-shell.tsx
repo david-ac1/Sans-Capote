@@ -48,11 +48,11 @@ export function AppShell({ children }: { children: ReactNode }) {
                 const IconComponent = item.icon;
                 
                 let label = item.label;
-                if (item.href === '/guide') label = language === 'fr' ? 'Guide' : 'Guide';
-                if (item.href === '/navigator') label = language === 'fr' ? 'Services' : 'Services';
-                if (item.href === '/resources') label = language === 'fr' ? 'Ressources' : 'Resources';
-                if (item.href === '/crisis') label = language === 'fr' ? 'Urgence' : 'Crisis';
-                if (item.href === '/') label = language === 'fr' ? 'Accueil' : 'Home';
+                if (item.href === '/guide') label = language === 'fr' ? 'Guide' : language === 'sw' ? 'Mwongozo' : 'Guide';
+                if (item.href === '/navigator') label = language === 'fr' ? 'Services' : language === 'sw' ? 'Huduma' : 'Services';
+                if (item.href === '/resources') label = language === 'fr' ? 'Ressources' : language === 'sw' ? 'Rasilimali' : 'Resources';
+                if (item.href === '/crisis') label = language === 'fr' ? 'Urgence' : language === 'sw' ? 'Dharura' : 'Crisis';
+                if (item.href === '/') label = language === 'fr' ? 'Accueil' : language === 'sw' ? 'Nyumbani' : 'Home';
 
                 return (
                   <Link
@@ -77,7 +77,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 href="/settings"
                 className="rounded-full border-2 border-[#008080] bg-white px-5 py-2 text-sm font-semibold text-[#008080] hover:bg-[#008080] hover:text-white transition-all"
               >
-                {language === 'fr' ? 'Paramètres' : 'Settings'}
+                {language === 'fr' ? 'Paramètres' : language === 'sw' ? 'Mipangilio' : 'Settings'}
               </Link>
             </div>
 
@@ -101,11 +101,11 @@ export function AppShell({ children }: { children: ReactNode }) {
                 const IconComponent = item.icon;
                 
                 let label = item.label;
-                if (item.href === '/guide') label = language === 'fr' ? 'Guide' : 'Guide';
-                if (item.href === '/navigator') label = language === 'fr' ? 'Services' : 'Services';
-                if (item.href === '/resources') label = language === 'fr' ? 'Ressources' : 'Resources';
-                if (item.href === '/crisis') label = language === 'fr' ? 'Urgence' : 'Crisis';
-                if (item.href === '/') label = language === 'fr' ? 'Accueil' : 'Home';
+                if (item.href === '/guide') label = language === 'fr' ? 'Guide' : language === 'sw' ? 'Mwongozo' : 'Guide';
+                if (item.href === '/navigator') label = language === 'fr' ? 'Services' : language === 'sw' ? 'Huduma' : 'Services';
+                if (item.href === '/resources') label = language === 'fr' ? 'Ressources' : language === 'sw' ? 'Rasilimali' : 'Resources';
+                if (item.href === '/crisis') label = language === 'fr' ? 'Urgence' : language === 'sw' ? 'Dharura' : 'Crisis';
+                if (item.href === '/') label = language === 'fr' ? 'Accueil' : language === 'sw' ? 'Nyumbani' : 'Home';
 
                 return (
                   <Link
@@ -128,7 +128,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex items-center justify-center gap-2 rounded-lg border-2 border-[#008080] bg-white px-4 py-3 text-base font-semibold text-[#008080] hover:bg-[#008080] hover:text-white transition-all mt-4"
               >
-                {language === 'fr' ? 'Paramètres' : 'Settings'}
+                {language === 'fr' ? 'Paramètres' : language === 'sw' ? 'Mipangilio' : 'Settings'}
               </Link>
             </div>
           </div>
@@ -145,6 +145,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           <p className="text-center text-xs text-[#94a3b8]">
             {language === 'fr' 
               ? 'Cet outil ne remplace pas un médecin. En cas d\'urgence, rendez-vous à la clinique ou à l\'hôpital le plus proche.'
+              : language === 'sw'
+              ? 'Chombo hiki hakibadilishi daktari. Katika dharura, nenda kliniki au hospitali iliyo karibu.'
               : 'This tool does not replace a doctor. In an emergency, go to the nearest clinic or hospital.'}
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-2 text-xs text-[#64748b]">

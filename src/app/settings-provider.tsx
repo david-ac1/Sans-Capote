@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 
-export type SupportedLanguage = "en" | "fr";
+export type SupportedLanguage = "en" | "fr" | "sw";
 
 export type SupportedCountryCode = "NG" | "KE" | "UG" | "ZA" | "RW" | "GH";
 
@@ -42,8 +42,9 @@ export function SettingsProvider({
       const storedPlayback = window.localStorage.getItem("sc_playback_rate");
         const storedVoicePref = window.localStorage.getItem("sc_voice_pref");
         const storedDiscreet = window.localStorage.getItem("sc_discreet_mode");
+        const storedDarkMode = window.localStorage.getItem("sc_dark_mode");
 
-      if (storedLanguage === "en" || storedLanguage === "fr") {
+      if (storedLanguage === "en" || storedLanguage === "fr" || storedLanguage === "sw") {
         setLanguage(storedLanguage);
       }
 
