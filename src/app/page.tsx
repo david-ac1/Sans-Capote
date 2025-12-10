@@ -47,12 +47,12 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F8FAFF] via-[#FFF] to-[#F0F4FF]">
-      <main className="mx-auto max-w-7xl px-6 py-12 lg:py-20">
+      <main className="mx-auto max-w-7xl px-6 py-6 lg:py-10">
         {/* Modern Hero Section - Split Layout */}
-        <section className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center mb-20">
+        <section className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center mb-12">
           {/* Left: Content */}
-          <div className="space-y-6">
-            <div className="space-y-3">
+          <div className="space-y-4">
+            <div className="space-y-2">
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#1a1a2e] leading-tight">
                 {discreetMode ? (
                   language === 'en' ? (
