@@ -70,19 +70,35 @@ function TitleComponent() {
  * The rotation angle now changes dynamically based on handle positions.
  * Dragging is projected on to this rotated axis so the handles feel natural.
  */
-function OpenSourceSlider({ width: initialWidth, height = 70, handleSize = 28, onChange }) {
+function OpenSourceSlider({ 
+  width: initialWidth, 
+  height = 70, 
+  handleSize = 28, 
+  onChange 
+}: { 
+  width: number; 
+  height?: number; 
+  handleSize?: number; 
+  onChange?: (data: { left: number; right: number; range: number }) => void;
+}) {
   // Adjusted height to better accommodate larger text
   const width = initialWidth > 0 ? initialWidth + 35 : 0;
   
   const [left, setLeft] = useState(0);
   const [right, setRight] = useState(width);
-  const [draggingHandle, setDraggingHandle] = useState(null);
+  const [draggingHandle, setDraggingHandle] = useState<'left' | 'right' | null>(null);
   // State to hold the dynamic rotation angle
   const [dynamicRotation, setDynamicRotation] = useState(ROTATION_DEG);
 
   const leftRef = useRef(left);
   const rightRef = useRef(right);
-  const dragRef = useRef(null);
+  const dragRef = useRef<{
+    handle: 'left' | 'right';
+    startX: number;
+    startY: number;
+    initialLeft: number;
+    initialRight: number;
+  } | null>(null);
 
   useEffect(() => {
     leftRef.current = left;
@@ -107,7 +123,7 @@ function OpenSourceSlider({ width: initialWidth, height = 70, handleSize = 28, o
 
   useEffect(() => setRight(width), [width]);
 
-  const startDrag = (handle, e) => {
+  const startDrag = (handle: 'left' | 'right', e: React.PointerEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
     dragRef.current = {
@@ -121,7 +137,7 @@ function OpenSourceSlider({ width: initialWidth, height = 70, handleSize = 28, o
   };
 
   const moveDrag = useCallback(
-    (e) => {
+    (e: PointerEvent) => {
       if (!dragRef.current) return;
       const { handle, startX, startY, initialLeft, initialRight } = dragRef.current;
       const dX = e.clientX - startX;
@@ -155,7 +171,7 @@ function OpenSourceSlider({ width: initialWidth, height = 70, handleSize = 28, o
     };
   }, [moveDrag, endDrag]);
 
-  const nudgeHandle = (handle) => (e) => {
+  const nudgeHandle = (handle: 'left' | 'right') => (e: React.KeyboardEvent<HTMLButtonElement>) => {
     if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
     e.preventDefault();
     const delta = e.key === "ArrowLeft" ? -10 : 10;
@@ -172,7 +188,7 @@ function OpenSourceSlider({ width: initialWidth, height = 70, handleSize = 28, o
       style={{ width, height, transform: `rotate(${dynamicRotation}deg)` }}
     >
       <div className="absolute inset-0 rounded-2xl border border-yellow-500 pointer-events-none" />
-      {(["left", "right"]).map((handle) => {
+      {(["left", "right"] as const).map((handle) => {
         const x = handle === "left" ? left : right - handleSize;
         const scaleClass = draggingHandle === handle ? "scale-125" : "hover:scale-110";
 
