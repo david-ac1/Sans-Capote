@@ -511,41 +511,20 @@ export default function NavigatorPage() {
     { value: 'lgbtqia', label: language === 'fr' ? 'Inclusif' : 'Inclusive' },
   ];
 
-  // Detect country from coordinates
-  const detectCountryFromCoords = (lat: number, lng: number): string => {
-    // Country bounding boxes (approximate)
-    const countryBounds: Record<string, { minLat: number; maxLat: number; minLng: number; maxLng: number }> = {
-      NG: { minLat: 4.0, maxLat: 14.0, minLng: 2.5, maxLng: 15.0 }, // Nigeria
-      KE: { minLat: -5.0, maxLat: 5.5, minLng: 33.5, maxLng: 42.0 }, // Kenya
-      UG: { minLat: -1.5, maxLat: 4.5, minLng: 29.5, maxLng: 35.0 }, // Uganda
-      ZA: { minLat: -35.0, maxLat: -22.0, minLng: 16.0, maxLng: 33.0 }, // South Africa
-      RW: { minLat: -3.0, maxLat: -1.0, minLng: 28.8, maxLng: 30.9 }, // Rwanda
-      GH: { minLat: 4.5, maxLat: 11.5, minLng: -3.5, maxLng: 1.5 }, // Ghana
-    };
 
-    for (const [code, bounds] of Object.entries(countryBounds)) {
-      if (lat >= bounds.minLat && lat <= bounds.maxLat && lng >= bounds.minLng && lng <= bounds.maxLng) {
-        return code;
-      }
-    }
-
-    return selectedCountry; // Fallback to current selection
-  };
 
   // Handle map clicks to update location
   const handleMapClick = (coordinates: { lat: number; lng: number }) => {
-    const detectedCountry = detectCountryFromCoords(coordinates.lat, coordinates.lng);
-    console.log('🎯 Detected country from tap:', detectedCountry, 'at', coordinates);
+    console.log('🗺️ Map clicked at:', coordinates);
     
-    if (detectedCountry !== selectedCountry) {
-      handleCountryChange(detectedCountry);
-    }
+    // Don't auto-switch countries on map clicks - this causes confusion
+    // Users should explicitly change country via the dropdown selector
+    // Just zoom to the clicked location within the current country
     
-    // Update map center to tapped location
     setMapCenter({
       lat: coordinates.lat,
       lng: coordinates.lng,
-      zoom: 10, // Zoom in on tapped location
+      zoom: 12, // Zoom in on tapped location
     });
   };
 
