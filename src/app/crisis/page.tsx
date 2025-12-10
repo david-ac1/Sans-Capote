@@ -6,6 +6,8 @@ import CrisisVoiceAgent from "../../components/CrisisVoiceAgent";
 import { strings, t } from "../../i18n/strings";
 import { ServiceEntry } from "../../data/servicesDirectory";
 import { AlertCircle, Phone, MapPin } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface CrisisResponse {
   answer: string;
@@ -42,10 +44,28 @@ export default function CrisisPage() {
 
       {result && (
         <section className="space-y-5 rounded-xl border border-[#222222]/10 bg-white px-6 py-6 shadow-md max-w-2xl">
-          <div className="space-y-2">
+          <div className="space-y-4">
             <p className="text-sm font-bold text-[#E63946]">{t(strings.crisis.step2, language)}</p>
-            <p className="text-base text-[#222222] leading-relaxed">{result.answer}</p>
-            <p className="text-sm text-[#555555] italic">{result.safetyNotice}</p>
+            <div className="prose prose-sm max-w-none">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  h1: ({node, ...props}) => <h1 className="text-xl font-bold text-[#222222] mt-6 mb-3 flex items-center gap-2" {...props} />,
+                  h2: ({node, ...props}) => <h2 className="text-lg font-bold text-[#222222] mt-5 mb-2 flex items-center gap-2" {...props} />,
+                  h3: ({node, ...props}) => <h3 className="text-base font-bold text-[#555555] mt-4 mb-2" {...props} />,
+                  p: ({node, ...props}) => <p className="text-base text-[#222222] leading-relaxed mb-3" {...props} />,
+                  ul: ({node, ...props}) => <ul className="list-none space-y-2 my-3 pl-0" {...props} />,
+                  ol: ({node, ...props}) => <ol className="list-decimal space-y-2 my-3 pl-6 marker:text-[#E63946] marker:font-bold" {...props} />,
+                  li: ({node, ...props}) => <li className="text-base text-[#222222] leading-relaxed" {...props} />,
+                  strong: ({node, ...props}) => <strong className="font-bold text-[#222222]" {...props} />,
+                  em: ({node, ...props}) => <em className="italic text-[#555555]" {...props} />,
+                  blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-[#008080] pl-4 my-3 text-[#555555] italic" {...props} />,
+                }}
+              >
+                {result.answer}
+              </ReactMarkdown>
+            </div>
+            <p className="text-sm text-[#555555] italic border-t border-[#222222]/10 pt-4">{result.safetyNotice}</p>
           </div>
 
           {result.localMatches && result.localMatches.length > 0 && (

@@ -150,45 +150,60 @@ EXPOSURE DETAILS:
 - Condom used: ${crisisContext.condomUsed}
 - PrEP status: ${crisisContext.onPrep}
 
-REQUIRED RESPONSE STRUCTURE:
+REQUIRED RESPONSE STRUCTURE (use proper markdown formatting):
 
-📊 **RISK ASSESSMENT** (Must include):
-1. Clear risk level with visual indicator:
-   - 🔴 HIGH RISK if: receptive anal, no condom, condom broke + HIV+ partner, shared needle, presence of STIs/injury
-   - 🟡 MODERATE RISK if: vaginal without condom, condom slipped, partner status unknown
-   - 🟢 LOW RISK if: condom intact, partner U=U, on PrEP, oral sex
-   - ⚪ MINIMAL/NO RISK if: protected oral, partner negative/U=U, no exchange of fluids
-2. Explain WHY this level based on specific factors provided
-3. Mention risk modifiers (STIs increase risk, PrEP/U=U decrease risk)
+## 📊 Risk Assessment
 
-⏰ **URGENCY LEVEL** (Must include if <72h):
-- Exact hours remaining for PEP window (72h total from exposure)
-- Emphasis: "PEP is most effective when started within 24-36 hours"
-- Countdown format: "You have approximately X hours remaining"
+Start with ONE of these risk level statements on its own line (choose based on situation):
+- "🔴 **HIGH RISK** - This situation has significant HIV transmission risk."
+- "🟡 **MODERATE RISK** - This situation has some HIV transmission risk."
+- "🟢 **LOW RISK** - This situation has minimal HIV transmission risk."
+- "⚪ **MINIMAL RISK** - This situation has very low HIV transmission risk."
 
-✅ **IMMEDIATE ACTIONS** (Must provide 3-5 numbered steps):
-1. First action (most urgent): "Go to [nearest clinic name if available] within 2 hours" or "Call emergency hotline"
-2. What to say at clinic: "Tell them you need PEP evaluation for HIV exposure"
-3. What to expect: "They will assess your exposure and may start a 28-day medication course"
-4. Follow-up: "Testing at 6 weeks and 3 months for confirmation"
-5. Support: "Use our Services Navigator to find nearby clinics"
+Then explain WHY in 2-3 sentences, referencing specific factors:
+- Exposure type (receptive anal highest, then vaginal, insertive, oral lowest)
+- Protection used (no condom, broke, intact)
+- Partner status (positive untreated vs U=U vs unknown vs negative)
+- Risk modifiers (STIs, injury increase risk; PrEP, U=U decrease risk)
 
-🏥 **RECOMMENDED CLINICS** (Must include top 2-3):
-- Prioritize clinics from provided list that offer PEP
-- Include: Name, location, phone number, hours (especially 24/7)
-- Add context: "[LGBTQIA+ friendly]", "[Walk-in available]", "[Free services]"
-- Format: "1. [Clinic Name] - [City] - [Phone] - [Hours/Special Notes]"
+## ⏰ Urgency Level
 
-📚 **WHAT TO KNOW** (Brief education, 2-3 points):
-- Explain PEP if in window: "PEP is a 28-day medication that can prevent HIV if started quickly"
-- If partner U=U: "Undetectable = Untransmittable (U=U): Your partner cannot transmit HIV"
-- Testing windows: "4th generation test at 6 weeks, RNA test at 10-14 days for earlier detection"
-- Relevant to their exposure type
+If <72 hours since exposure, write:
+"⚠️ **[CRITICAL/HIGH/LAST] URGENCY** - You have approximately **[X] hours remaining** in the 72-hour PEP window. PEP is most effective within the first 24-36 hours."
 
-🔐 **PRIVACY & SUPPORT**:
-- Remind: "This information is confidential and private"
-- Encourage: "You're taking the right step by seeking information"
-- Direct to app resources: "Explore our Services Navigator for more clinics" or "Visit Education Hub for detailed HIV information"
+If >72 hours, write:
+"The PEP window has closed, but testing and prevention options are still important."
+
+## ✅ Immediate Actions
+
+Write "Here's what to do right now:" then provide 3-5 numbered steps:
+
+1. **[Most urgent action]**: Go to [specific clinic name] or nearest health facility within 2 hours
+2. **What to say**: "I need PEP evaluation for potential HIV exposure [X] hours ago"
+3. **What to expect**: They will assess your risk and may prescribe a 28-day medication course
+4. **Follow-up**: Testing at 6 weeks and 3 months to confirm your status
+5. **Support**: Use our Services Navigator if you need more clinic options
+
+## 🏥 Recommended Clinics
+
+List top 2-3 clinics from the provided list:
+
+1. **[Clinic Name]** - [City]
+   - Phone: [number]
+   - Hours: [hours, emphasize 24/7 if applicable]
+   - [LGBTQIA+ friendly] [PEP available] [Walk-in] (badges as applicable)
+
+## 📚 What You Should Know
+
+Provide 2-3 brief educational points relevant to their situation:
+- If <72h: "PEP (Post-Exposure Prophylaxis) is a 28-day medication course that can prevent HIV infection when started quickly after exposure."
+- If partner U=U: "U=U means Undetectable = Untransmittable. Your partner cannot transmit HIV when their viral load is undetectable."
+- Testing windows: "Most accurate test is at 3 months, but 4th generation tests can detect at 6 weeks."
+- Relevant info about their exposure type
+
+## 🔐 Privacy & Support
+
+"🔒 This information is completely confidential. You're taking the right step by seeking help. Find more resources in our Services Navigator and Education Hub."
 
 CRITICAL REQUIREMENTS:
 ✓ Use empathetic, non-judgmental language
@@ -348,6 +363,7 @@ Reply ONLY in English.`;
     }
 
     // Create a short, bite-sized version for mobile screens and faster TTS
+    // BUT: Don't shorten crisis responses - they need comprehensive guidance
     const makeShort = (src: string) => {
       const MAX_CHARS = 600;
       const MAX_SENTENCES = 4;
@@ -359,7 +375,8 @@ Reply ONLY in English.`;
       return src.slice(0, Math.min(MAX_CHARS, src.length)).trim() + '…';
     };
 
-    const short = makeShort(text);
+    // For crisis mode, return full text (comprehensive guidance required)
+    const short = crisisContext ? text : makeShort(text);
 
     // Generate sentiment-aware suggestions
     const suggestions = generateSentimentSuggestions(sentiment, emotionalTrend, isFrench);

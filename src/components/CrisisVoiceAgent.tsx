@@ -616,7 +616,8 @@ Use empathetic, non-judgmental language. Format with markdown sections.
       let agentText = "";
       if (res.ok) {
         const data = await res.json();
-        agentText = data.answer || data.summary || "";
+        // Use fullAnswer for crisis mode to get comprehensive guidance
+        agentText = data.fullAnswer || data.answer || data.summary || "";
         
         // Prepend urgency message if PEP window active
         if (urgencyLevel && triageData.hoursAgo !== null && triageData.hoursAgo < 72) {
@@ -639,8 +640,18 @@ Use empathetic, non-judgmental language. Format with markdown sections.
         ? "🔒 Rappel : Cette conversation est privée et confidentielle. Si vous êtes en danger immédiat, appelez les services d'urgence locaux." 
         : "🔒 Reminder: This conversation is private and confidential. If you are in immediate danger, call your local emergency services.";
 
-      // Speak final guidance
-      await speakResponse(agentText + " " + safetyNotice);
+      // Skip TTS for long crisis responses (>1000 chars) - just display the text
+      // This avoids audio loading errors and lets users read at their own pace
+      const shouldSpeak = agentText.length < 1000;
+      if (shouldSpeak) {
+        await speakResponse(agentText + " " + safetyNotice);
+      } else {
+        // For long responses, just show a brief audio notification
+        const completionMsg = language === "fr"
+          ? "Votre évaluation est terminée. Veuillez lire les informations importantes ci-dessous."
+          : "Your assessment is complete. Please read the important information below.";
+        await speakResponse(completionMsg);
+      }
 
       trackVoiceFlowEvent('flow_completed', {
         duration: getTelemetry().getSessionSummary().duration,
