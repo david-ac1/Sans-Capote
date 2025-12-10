@@ -135,7 +135,72 @@ async function tryGeminiAnswer(
     .join("\n");
 
   const crisisSnippet = crisisContext
-    ? `Crisis context: timeSince=${crisisContext.timeSince}, exposureType=${crisisContext.exposureType}, condomUsed=${crisisContext.condomUsed}, onPrep=${crisisContext.onPrep}.`
+    ? `
+🚨 CRISIS TRIAGE MODE - COMPREHENSIVE ASSESSMENT REQUIRED:
+
+EXPOSURE TIMELINE:
+- Time since exposure: ${crisisContext.timeSince}
+${crisisContext.timeSince === '<24' ? '⚠️ CRITICAL URGENCY - Maximum PEP effectiveness window' : ''}
+${crisisContext.timeSince === '24-48' ? '⚠️ HIGH URGENCY - PEP still very effective' : ''}
+${crisisContext.timeSince === '48-72' ? '⚠️ LAST WINDOW - PEP possible but less effective' : ''}
+${crisisContext.timeSince === '>72' ? 'PEP window closed - Recommend testing timeline' : ''}
+
+EXPOSURE DETAILS:
+- Type: ${crisisContext.exposureType}
+- Condom used: ${crisisContext.condomUsed}
+- PrEP status: ${crisisContext.onPrep}
+
+REQUIRED RESPONSE STRUCTURE:
+
+📊 **RISK ASSESSMENT** (Must include):
+1. Clear risk level with visual indicator:
+   - 🔴 HIGH RISK if: receptive anal, no condom, condom broke + HIV+ partner, shared needle, presence of STIs/injury
+   - 🟡 MODERATE RISK if: vaginal without condom, condom slipped, partner status unknown
+   - 🟢 LOW RISK if: condom intact, partner U=U, on PrEP, oral sex
+   - ⚪ MINIMAL/NO RISK if: protected oral, partner negative/U=U, no exchange of fluids
+2. Explain WHY this level based on specific factors provided
+3. Mention risk modifiers (STIs increase risk, PrEP/U=U decrease risk)
+
+⏰ **URGENCY LEVEL** (Must include if <72h):
+- Exact hours remaining for PEP window (72h total from exposure)
+- Emphasis: "PEP is most effective when started within 24-36 hours"
+- Countdown format: "You have approximately X hours remaining"
+
+✅ **IMMEDIATE ACTIONS** (Must provide 3-5 numbered steps):
+1. First action (most urgent): "Go to [nearest clinic name if available] within 2 hours" or "Call emergency hotline"
+2. What to say at clinic: "Tell them you need PEP evaluation for HIV exposure"
+3. What to expect: "They will assess your exposure and may start a 28-day medication course"
+4. Follow-up: "Testing at 6 weeks and 3 months for confirmation"
+5. Support: "Use our Services Navigator to find nearby clinics"
+
+🏥 **RECOMMENDED CLINICS** (Must include top 2-3):
+- Prioritize clinics from provided list that offer PEP
+- Include: Name, location, phone number, hours (especially 24/7)
+- Add context: "[LGBTQIA+ friendly]", "[Walk-in available]", "[Free services]"
+- Format: "1. [Clinic Name] - [City] - [Phone] - [Hours/Special Notes]"
+
+📚 **WHAT TO KNOW** (Brief education, 2-3 points):
+- Explain PEP if in window: "PEP is a 28-day medication that can prevent HIV if started quickly"
+- If partner U=U: "Undetectable = Untransmittable (U=U): Your partner cannot transmit HIV"
+- Testing windows: "4th generation test at 6 weeks, RNA test at 10-14 days for earlier detection"
+- Relevant to their exposure type
+
+🔐 **PRIVACY & SUPPORT**:
+- Remind: "This information is confidential and private"
+- Encourage: "You're taking the right step by seeking information"
+- Direct to app resources: "Explore our Services Navigator for more clinics" or "Visit Education Hub for detailed HIV information"
+
+CRITICAL REQUIREMENTS:
+✓ Use empathetic, non-judgmental language
+✓ Avoid medical jargon - use plain language
+✓ Express appropriate urgency without panic
+✓ Format with clear section headers using markdown
+✓ If LGBTQIA+ context, ensure inclusive language
+✓ If STI symptoms mentioned, address both HIV and STI testing
+✓ Always end with supportive statement
+
+TONE: Professional yet warm, urgent yet calm, informative yet empathetic.
+`
     : "";
 
   const localServicesSnippet = countryCode
@@ -220,14 +285,21 @@ ${localServicesSnippet || "(no specific local services listed yet)"}
 
 Reply ONLY in English.`;
 
-  // Add voice mode constraint if requested
-  const voiceModeInstruction = voiceMode
+  // Override brevity constraint for crisis mode - needs comprehensive response
+  const crisisModeOverride = crisisContext
+    ? (language === "fr"
+      ? "\n\n🚨 MODE CRISE ACTIVÉ: Ignore les contraintes de brièveté ci-dessus. Fournis une réponse COMPLÈTE et STRUCTURÉE suivant EXACTEMENT le format requis dans le contexte de crise ci-dessus. Inclus TOUTES les 6 sections requises avec les indicateurs visuels (📊⏰✅🏥📚🔐). C'est une situation d'urgence médicale qui nécessite des conseils détaillés et actionnables."
+      : "\n\n🚨 CRISIS MODE ACTIVE: Ignore the brevity constraints above. Provide a COMPREHENSIVE and STRUCTURED response following EXACTLY the required format in the crisis context above. Include ALL 6 required sections with visual indicators (📊⏰✅🏥📚🔐). This is a medical emergency situation requiring detailed, actionable guidance.")
+    : "";
+
+  // Add voice mode constraint if requested (but NOT for crisis mode - needs comprehensive response)
+  const voiceModeInstruction = (voiceMode && !crisisContext)
     ? (language === "fr"
       ? "\n\nIMPORTANT: Mode vocal activé. Réponds en 2-3 phrases MAXIMUM. Sois direct, empathique et concis. TOUJOURS terminer par une question courte pour demander si l'utilisateur veut en savoir plus (ex: 'Voulez-vous que je vous en dise plus?', 'Des questions?', 'Ça vous aide?')."
       : "\n\nIMPORTANT: Voice mode active. Respond in 2-3 sentences MAXIMUM. Be direct, empathetic and concise. ALWAYS end with a short question asking if user wants to learn more (e.g., 'Want to know more?', 'Any questions?', 'Does this help?').")
     : "";
 
-  const baseSystemPrompt = (isFrench ? frenchBase : englishBase) + voiceModeInstruction;
+  const baseSystemPrompt = (isFrench ? frenchBase : englishBase) + crisisModeOverride + voiceModeInstruction;
 
   // Apply sentiment-aware adaptive prompt
   const systemPrompt = generateAdaptivePrompt(baseSystemPrompt, sentiment, language);

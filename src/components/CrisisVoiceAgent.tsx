@@ -47,6 +47,7 @@ export default function CrisisVoiceAgent({ onComplete }: CrisisVoiceAgentProps) 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+  const audioCompleteCallbackRef = useRef<(() => void) | null>(null);
   const handleAnswerRef = useRef<(text: string) => void>(() => {});
 
   // Keyboard navigation
@@ -238,11 +239,16 @@ export default function CrisisVoiceAgent({ onComplete }: CrisisVoiceAgentProps) 
           const completeOnce = () => {
             if (hasCompleted) return;
             hasCompleted = true;
+            currentAudioRef.current = null; // Clear ref
+            audioCompleteCallbackRef.current = null; // Clear callback ref
             URL.revokeObjectURL(url); // Clean up blob URL
             setCurrentCaption(""); // Clear caption
             if (onComplete) onComplete();
             resolve();
           };
+          
+          // Store callback for Skip button
+          audioCompleteCallbackRef.current = completeOnce;
           
           audio.onended = completeOnce;
           
@@ -308,20 +314,38 @@ export default function CrisisVoiceAgent({ onComplete }: CrisisVoiceAgentProps) 
           });
         })
         .catch(err => {
-          console.warn("TTS unavailable, continuing with text-only:", err.message);
-          trackError(err, {
-            context: 'tts_fetch',
-            questionIndex,
-            language,
-            errorMessage: err.message,
-          });
+          // Handle rate limiting specifically
+          if (err.message === 'RATE_LIMIT_EXCEEDED') {
+            console.warn("⚠️ TTS rate limit reached - showing text instead");
+            
+            // Show user-friendly message
+            const rateLimitMsg = language === 'fr'
+              ? '(Audio temporairement indisponible - veuillez lire le texte)'
+              : '(Audio temporarily unavailable - please read the text)';
+            
+            setCurrentCaption(`${text}\n\n${rateLimitMsg}`);
+            
+            trackError(err, {
+              context: 'tts_rate_limit',
+              questionIndex,
+              language,
+            });
+          } else {
+            console.warn("TTS unavailable, continuing with text-only:", err.message);
+            trackError(err, {
+              context: 'tts_fetch',
+              questionIndex,
+              language,
+              errorMessage: err.message,
+            });
+          }
           
-          // Keep caption visible for reading, then auto-proceed
+          // Keep caption visible briefly for reading, then auto-proceed to enable voice input
           setTimeout(() => {
             setCurrentCaption("");
-            if (onComplete) onComplete();
+            if (onComplete) onComplete(); // This will start voice recognition
             resolve();
-          }, 3000); // Give 3 seconds to read the text
+          }, 1500); // Give 1.5 seconds to read, then start listening immediately
         });
     });
   }, [language, discreetMode, isMounted, questionIndex]);
@@ -401,16 +425,18 @@ export default function CrisisVoiceAgent({ onComplete }: CrisisVoiceAgentProps) 
     }
     
     speakResponse(questionText, () => {
-      // start listening after TTS completes
+      // start listening immediately after TTS completes
       setTimeout(() => {
-        if (recognitionRef.current) {
+        if (recognitionRef.current && !isListening) {
           try {
+            setIsListening(true);
             recognitionRef.current.start();
           } catch (e) {
             console.warn("Recognition start error:", e);
+            // If already started, that's fine - user might have clicked manually
           }
         }
-      }, 150);
+      }, 100); // Reduced timeout for faster response
     });
   }, [language, activeQuestions, speakResponse]);
 
@@ -552,6 +578,7 @@ Use empathetic, non-judgmental language. Format with markdown sections.
             { role: "user", content: structuredContext },
           ],
           language,
+          voiceMode: false,
           countryCode,
           mode: "crisis_triage",
           crisisContext: {
@@ -566,14 +593,21 @@ Use empathetic, non-judgmental language. Format with markdown sections.
             lgbtqiaPlus: triageData.lgbtqiaPlus,
             stiSymptoms: triageData.stiSymptoms,
             hasInjury: triageData.hasInjury,
+            hoursAgo: triageData.hoursAgo,
+            urgencyLevel,
+            pepWindowMessage,
           },
           localServices: localMatches.map((s) => ({ 
             id: s.id, 
             name: s.name, 
             city: s.city, 
             phone: s.phone,
+            hours: s.hours,
             hours24: s.hours?.toLowerCase().includes('24') || false,
             lgbtqiaFriendly: (s.lgbtqiaFriendly || 0) >= 3,
+            pepAvailable: s.services.pep || false,
+            prepAvailable: s.services.prep || false,
+            testingAvailable: s.services.hivTesting || false,
             notes: language === "fr" ? s.notesFr : s.notesEn 
           })),
         }),
@@ -812,10 +846,37 @@ Use empathetic, non-judgmental language. Format with markdown sections.
           <div className="rounded-lg bg-[#F9F9F9] px-5 py-4">
             <div className="flex items-start justify-between gap-4 mb-3">
               <p className="text-xs font-bold text-[#555555] uppercase tracking-wide">{language === "fr" ? "Question" : "Question"}</p>
-              <div className={`rounded-full px-3 py-1 text-xs font-bold whitespace-nowrap ${
-                isListening ? 'bg-[#E63946] text-white' : 'bg-white text-[#555555] border border-[#222222]/10'
-              }`}>
-                {isListening ? (language === "fr" ? 'En écoute' : 'Listening') : (language === "fr" ? 'En attente' : 'Waiting')}
+              <div className="flex items-center gap-2">
+                <div className={`rounded-full px-3 py-1 text-xs font-bold whitespace-nowrap ${
+                  isListening ? 'bg-[#E63946] text-white' : 'bg-white text-[#555555] border border-[#222222]/10'
+                }`}>
+                  {isListening ? (language === "fr" ? 'En écoute' : 'Listening') : (language === "fr" ? 'En attente' : 'Waiting')}
+                </div>
+                {/* Skip audio button - shows when audio is playing */}
+                {!isListening && !isProcessing && currentCaption && questionIndex < activeQuestions.length && (
+                  <button
+                    onClick={() => {
+                      // Stop current audio if playing
+                      if (currentAudioRef.current) {
+                        currentAudioRef.current.pause();
+                        currentAudioRef.current.src = '';
+                        currentAudioRef.current = null;
+                      }
+                      
+                      // Clear caption
+                      setCurrentCaption("");
+                      
+                      // Call the complete callback to proceed
+                      if (audioCompleteCallbackRef.current) {
+                        audioCompleteCallbackRef.current();
+                      }
+                    }}
+                    className="rounded-full px-3 py-1 text-xs font-bold bg-[#555555] text-white hover:bg-[#333333] transition-colors"
+                    aria-label={language === "fr" ? "Passer l'audio" : "Skip audio"}
+                  >
+                    {language === "fr" ? "Passer" : "Skip"}
+                  </button>
+                )}
               </div>
             </div>
             <p className="text-base text-[#1a1a1a]">{activeQuestions[questionIndex] ? (language === "fr" ? activeQuestions[questionIndex].fr : activeQuestions[questionIndex].en) : (language === "fr" ? "Collecte terminée." : "Collection complete.")}</p>
@@ -825,6 +886,85 @@ Use empathetic, non-judgmental language. Format with markdown sections.
             <div className="rounded-lg bg-[#E3F4F4] px-5 py-4">
               <p className="text-xs font-bold text-[#008080] mb-2 uppercase tracking-wide">{language === "fr" ? "Votre réponse" : "Your answer"}</p>
               <p className="text-sm text-[#1a1a1a]">{transcript}</p>
+            </div>
+          )}
+
+          {/* Voice input or text input controls */}
+          {!isProcessing && questionIndex < activeQuestions.length && (
+            <div className="space-y-3 rounded-lg bg-[#F9F9F9] px-5 py-4">
+              {!isListening ? (
+                <>
+                  <div className="flex gap-2 mb-3">
+                    <button
+                      onClick={() => {
+                        // Skip audio and start listening immediately
+                        if (currentAudioRef.current) {
+                          currentAudioRef.current.pause();
+                          currentAudioRef.current.src = '';
+                        }
+                        setCurrentCaption("");
+                        if (recognitionRef.current) {
+                          try {
+                            recognitionRef.current.start();
+                          } catch (e) {
+                            console.warn("Recognition already started:", e);
+                          }
+                        }
+                      }}
+                      className="flex-1 rounded-lg bg-[#E63946] px-6 py-3 text-sm font-bold text-white hover:bg-[#d62839] transition-colors flex items-center justify-center gap-2"
+                      aria-label={language === "fr" ? "Commencer à parler" : "Start speaking"}
+                    >
+                      🎤 {language === "fr" ? "Répondre vocalement" : "Speak Answer"}
+                    </button>
+                  </div>
+                  <p className="text-xs font-bold text-[#555555] uppercase tracking-wide text-center">
+                    {language === "fr" ? "Ou tapez votre réponse" : "Or type your answer"}
+                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={transcript}
+                      onChange={(e) => setTranscript(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && transcript.trim()) {
+                          handleAnswerRef.current(transcript);
+                        }
+                      }}
+                      placeholder={language === "fr" ? "Tapez ici..." : "Type here..."}
+                      className="flex-1 rounded-lg border border-[#222222]/20 px-4 py-2 text-sm text-[#1a1a1a] focus:outline-none focus:ring-2 focus:ring-[#008080]"
+                      aria-label={language === "fr" ? "Saisir la réponse" : "Enter answer"}
+                    />
+                    <button
+                      onClick={() => {
+                        if (transcript.trim()) {
+                          handleAnswerRef.current(transcript);
+                        }
+                      }}
+                      disabled={!transcript.trim()}
+                      className="rounded-lg bg-[#008080] px-6 py-2 text-sm font-bold text-white hover:bg-[#007070] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      aria-label={language === "fr" ? "Soumettre la réponse" : "Submit answer"}
+                    >
+                      {language === "fr" ? "Envoyer" : "Submit"}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-2">
+                  <p className="text-sm font-bold text-[#E63946] mb-2">
+                    🎤 {language === "fr" ? "En écoute... Parlez maintenant" : "Listening... Speak now"}
+                  </p>
+                  <button
+                    onClick={() => {
+                      if (recognitionRef.current) {
+                        recognitionRef.current.stop();
+                      }
+                    }}
+                    className="rounded-lg bg-[#555555] px-4 py-2 text-xs font-bold text-white hover:bg-[#333333] transition-colors"
+                  >
+                    {language === "fr" ? "Arrêter l'écoute" : "Stop Listening"}
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

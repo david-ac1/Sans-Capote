@@ -115,6 +115,25 @@ export async function fetchTTSWithRetry(
       });
 
       if (!response.ok) {
+        const contentType = response.headers.get('content-type');
+        
+        // If it's JSON, it's an error response with details
+        if (contentType && contentType.includes('application/json')) {
+          const errorData = await response.json();
+          
+          // Handle rate limiting specifically
+          if (response.status === 429) {
+            console.warn('⚠️ TTS rate limit reached. Falling back to text display.');
+            console.warn('Fallback message:', errorData.fallbackMessage);
+            
+            // Don't retry on rate limit - fail gracefully
+            throw new Error('RATE_LIMIT_EXCEEDED');
+          }
+          
+          throw new Error(`TTS API error: ${JSON.stringify(errorData)}`);
+        }
+        
+        // Non-JSON error response
         const errorText = await response.text();
         console.error('TTS API error:', response.status, errorText);
         throw new Error(`TTS request failed: ${response.status} - ${errorText}`);
@@ -125,7 +144,7 @@ export async function fetchTTSWithRetry(
       console.log('TTS response content-type:', contentType);
       
       if (contentType && contentType.includes('application/json')) {
-        // API returned JSON error instead of audio
+        // API returned JSON when we expected audio
         const errorData = await response.json();
         throw new Error(`TTS API returned error: ${JSON.stringify(errorData)}`);
       }
@@ -157,6 +176,13 @@ export async function fetchTTSWithRetry(
       return blob;
     } catch (error) {
       lastError = error as Error;
+      
+      // Don't retry on rate limit errors - fail fast
+      if (lastError.message === 'RATE_LIMIT_EXCEEDED') {
+        console.warn('⚠️ TTS rate limit - not retrying');
+        throw lastError;
+      }
+      
       console.warn(`TTS attempt ${attempt}/${maxRetries} failed:`, error);
       
       // Wait before retry (exponential backoff)

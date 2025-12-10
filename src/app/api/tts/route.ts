@@ -103,6 +103,25 @@ export async function POST(req: NextRequest) {
     if (!response.ok) {
       const error = await response.text();
       console.error('ElevenLabs API error:', response.status, error);
+      
+      // Handle rate limiting specifically
+      if (response.status === 429) {
+        return NextResponse.json(
+          { 
+            error: 'Rate limit exceeded',
+            details: 'ElevenLabs API rate limit reached. Please wait a moment before trying again.',
+            retryAfter: 60,
+            fallbackMessage: sanitizedText // Return the text so client can display it
+          },
+          { 
+            status: 429,
+            headers: {
+              'Retry-After': '60',
+            }
+          }
+        );
+      }
+      
       throw new Error(`Failed to generate speech: ${response.status}`);
     }
 
