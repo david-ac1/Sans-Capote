@@ -20,7 +20,8 @@
 > **Note for Reviewers:** We acknowledge the dual meaning and welcome feedback on whether a different name (e.g., "Open Health," "Clear Talk," "Sans Tabou") would better serve our mission while maintaining cultural sensitivity.
 
 ## 🌍 What is Sans-Capote?
-<img width="1916" height="942" alt="Screenshot 2025-12-07 001028" src="https://github.com/user-attachments/assets/d7cbc504-6cea-4a50-97ca-b1d01b1289c8" />
+<img width="1919" height="828" alt="Screenshot 2025-12-10 141838" src="https://github.com/user-attachments/assets/34cce843-0171-4677-b1d1-7534a11d8b98" />
+
 
 Combining **Google Gemini** for intelligent conversation, **ElevenLabs** for natural voice output, and **Supabase** for community ratings, Sans-Capote provides accessible, private, and culturally-sensitive health guidance via voice or text—even offline.
 
