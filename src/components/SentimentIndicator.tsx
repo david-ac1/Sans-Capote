@@ -9,7 +9,7 @@ interface SentimentIndicatorProps {
   emotionalState: EmotionalState;
   stressLevel: StressLevel;
   trend?: 'improving' | 'worsening' | 'stable';
-  language?: 'en' | 'fr';
+  language?: 'en' | 'fr' | 'sw';
   compact?: boolean;
 }
 
@@ -42,6 +42,15 @@ const EMOTION_LABELS = {
     hopeful: 'Optimiste',
     neutral: 'Neutre',
   },
+  sw: {
+    calm: 'Tulivu',
+    anxious: 'Wasiwasi',
+    distressed: 'Msongo wa Mawazo',
+    confused: 'Kuchanganyikiwa',
+    angry: 'Hasira',
+    hopeful: 'Tumaini',
+    neutral: 'Wastani',
+  },
 };
 
 const STRESS_LABELS = {
@@ -57,6 +66,12 @@ const STRESS_LABELS = {
     high: 'Stress élevé',
     critical: 'Stress critique',
   },
+  sw: {
+    low: 'Msongo mdogo',
+    moderate: 'Msongo wa kati',
+    high: 'Msongo mkubwa',
+    critical: 'Msongo wa hatari',
+  },
 };
 
 const TREND_LABELS = {
@@ -69,6 +84,11 @@ const TREND_LABELS = {
     improving: '↗ En amélioration',
     stable: '→ Stable',
     worsening: '↘ Nécessite attention',
+  },
+  sw: {
+    improving: '↗ Inaboreshwa',
+    stable: '→ Imara',
+    worsening: '↘ Inahitaji umakini',
   },
 };
 
