@@ -344,8 +344,15 @@ export default function ServiceDetailsPanel({
         )}
       </div>
 
-      {/* Content - with explicit flex-1 and overflow */}
-      <div className="flex-1 overflow-y-scroll p-4 space-y-4" style={{ minHeight: 0 }}>
+      {/* Content - with explicit flex-1 and overflow with custom scrollbar */}
+      <div 
+        className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-visible" 
+        style={{ 
+          minHeight: 0,
+          scrollbarWidth: 'thin',
+          scrollbarColor: '#10b981 #f1f5f9'
+        }}
+      >
         {/* Loading skeleton */}
         {isLoading && (
           <div className="space-y-4 animate-pulse">
