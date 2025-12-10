@@ -4,6 +4,7 @@ import { MessageCircle, Map, BookOpen, AlertCircle, Sparkles, Shield, Users } fr
 import { useSettings } from "./settings-provider";
 import { strings, t } from "../i18n/strings";
 import { useState, useEffect } from "react";
+import { InteractiveText } from "../components/ui/interactive-text";
 
 export default function Home() {
   const { language, discreetMode } = useSettings();
@@ -56,35 +57,35 @@ export default function Home() {
                 {discreetMode ? (
                   language === 'en' ? (
                     <>
-                      Take Control of Your <span className="text-[#008080]">Personal Health</span><br />
-                      with <span className="text-[#008080]">Private Wellness Support</span>
+                      Take Control of Your <InteractiveText className="text-[#008080] font-extrabold text-3xl sm:text-4xl lg:text-5xl">Personal Health</InteractiveText><br />
+                      with <InteractiveText className="text-[#008080] font-extrabold text-3xl sm:text-4xl lg:text-5xl">Private Wellness Support</InteractiveText>
                     </>
                   ) : language === 'fr' ? (
                     <>
-                      Prenez le Contrôle de Votre <span className="text-[#008080]">Santé Personnelle</span><br />
-                      avec <span className="text-[#008080]">Soutien au Bien-être Privé</span>
+                      Prenez le Contrôle de Votre <InteractiveText className="text-[#008080] font-extrabold text-3xl sm:text-4xl lg:text-5xl">Santé Personnelle</InteractiveText><br />
+                      avec <InteractiveText className="text-[#008080] font-extrabold text-3xl sm:text-4xl lg:text-5xl">Soutien au Bien-être Privé</InteractiveText>
                     </>
                   ) : (
                     <>
-                      Dhibiti <span className="text-[#008080]">Afya Yako Binafsi</span><br />
-                      na <span className="text-[#008080]">Msaada wa Faragha wa Ustawi</span>
+                      Dhibiti <InteractiveText className="text-[#008080] font-extrabold text-3xl sm:text-4xl lg:text-5xl">Afya Yako Binafsi</InteractiveText><br />
+                      na <InteractiveText className="text-[#008080] font-extrabold text-3xl sm:text-4xl lg:text-5xl">Msaada wa Faragha wa Ustawi</InteractiveText>
                     </>
                   )
                 ) : (
                   language === 'en' ? (
                     <>
-                      Take Charge of Your <span className="text-[#008080]">Sexual Health</span> Now<br />
-                      and Streamline Your <span className="text-[#008080]">Healthcare Journey</span>
+                      Take Charge of Your <InteractiveText className="text-[#008080] font-extrabold text-3xl sm:text-4xl lg:text-5xl">Sexual Health</InteractiveText> Now<br />
+                      and Streamline Your <InteractiveText className="text-[#008080] font-extrabold text-3xl sm:text-4xl lg:text-5xl">Healthcare Journey</InteractiveText>
                     </>
                   ) : language === 'fr' ? (
                     <>
-                      Prenez le Contrôle de Votre <span className="text-[#008080]">Santé Sexuelle</span> Maintenant<br />
-                      et Rationalisez Votre <span className="text-[#008080]">Parcours de Santé</span>
+                      Prenez le Contrôle de Votre <InteractiveText className="text-[#008080] font-extrabold text-3xl sm:text-4xl lg:text-5xl">Santé Sexuelle</InteractiveText> Maintenant<br />
+                      et Rationalisez Votre <InteractiveText className="text-[#008080] font-extrabold text-3xl sm:text-4xl lg:text-5xl">Parcours de Santé</InteractiveText>
                     </>
                   ) : (
                     <>
-                      Dhibiti <span className="text-[#008080]">Afya Yako ya Kingono</span> Sasa<br />
-                      na Rahisisha <span className="text-[#008080]">Safari Yako ya Afya</span>
+                      Dhibiti <InteractiveText className="text-[#008080] font-extrabold text-3xl sm:text-4xl lg:text-5xl">Afya Yako ya Kingono</InteractiveText> Sasa<br />
+                      na Rahisisha <InteractiveText className="text-[#008080] font-extrabold text-3xl sm:text-4xl lg:text-5xl">Safari Yako ya Afya</InteractiveText>
                     </>
                   )
                 )}
