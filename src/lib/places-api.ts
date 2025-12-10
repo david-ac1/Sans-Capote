@@ -243,7 +243,7 @@ export function formatDistance(meters: number): string {
  */
 export function getStatusText(
   status?: 'OPEN' | 'CLOSED' | 'UNKNOWN',
-  language: 'en' | 'fr' = 'en'
+  language: 'en' | 'fr' | 'sw' = 'en'
 ): string {
   if (!status || status === 'UNKNOWN') {
     return language === 'fr' ? 'Horaires inconnus' : 'Hours unknown';

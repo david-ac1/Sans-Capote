@@ -82,7 +82,7 @@ const POSITIVE_WORDS = [
 /**
  * Analyze text for emotional content and stress indicators
  */
-export function analyzeSentiment(text: string, _language: 'en' | 'fr' = 'en'): SentimentAnalysis {
+export function analyzeSentiment(text: string, _language: 'en' | 'fr' | 'sw' = 'en'): SentimentAnalysis {
   const lowerText = text.toLowerCase();
   const words = lowerText.split(/\s+/);
   
@@ -329,7 +329,7 @@ export class EmotionalJourneyTracker {
 export function generateAdaptivePrompt(
   basePrompt: string,
   analysis: SentimentAnalysis,
-  language: 'en' | 'fr' = 'en'
+  language: 'en' | 'fr' | 'sw' = 'en'
 ): string {
   const toneInstructions = getToneInstructions(analysis.suggestedTone, language);
   const stressAdjustment = getStressAdjustment(analysis.stressLevel, language);
@@ -348,50 +348,59 @@ ${stressAdjustment}
 Remember: The user may be in a vulnerable state. Prioritize clarity, compassion, and actionable guidance.`;
 }
 
-function getToneInstructions(tone: SentimentAnalysis['suggestedTone'], language: 'en' | 'fr'): string {
+function getToneInstructions(tone: SentimentAnalysis['suggestedTone'], language: 'en' | 'fr' | 'sw'): string {
   const instructions = {
     reassuring: {
       en: '- Use calm, reassuring language\n- Emphasize that help is available\n- Normalize their feelings\n- Provide clear, simple steps',
       fr: '- Utilisez un langage calme et rassurant\n- Soulignez que de l\'aide est disponible\n- Normalisez leurs sentiments\n- Fournissez des étapes claires et simples',
+      sw: '- Tumia lugha ya utulivu na ya kutia moyo\n- Sisitiza kwamba msaada unapatikana\n- Fanya hisia zao ziwe za kawaida\n- Toa hatua wazi na rahisi',
     },
     empathetic: {
       en: '- Acknowledge their concerns with empathy\n- Validate their emotions\n- Show understanding without judgment\n- Offer supportive guidance',
       fr: '- Reconnaissez leurs préoccupations avec empathie\n- Validez leurs émotions\n- Montrez de la compréhension sans jugement\n- Offrez des conseils de soutien',
+      sw: '- Tambua wasiwasi wao kwa huruma\n- Thibitisha hisia zao\n- Onyesha uelewa bila kuhukumu\n- Toa mwongozo wa kusaidia',
     },
     professional: {
       en: '- Maintain a clear, professional tone\n- Focus on facts and actionable information\n- Be direct and organized\n- Provide structured guidance',
       fr: '- Maintenez un ton clair et professionnel\n- Concentrez-vous sur les faits et les informations exploitables\n- Soyez direct et organisé\n- Fournissez des conseils structurés',
+      sw: '- Weka sauti wazi na ya kitaaluma\n- Zingatia ukweli na habari zinazoweza kutendeka\n- Kuwa moja kwa moja na mpangilifu\n- Toa mwongozo uliowekwa',
     },
     urgent: {
       en: '- Convey appropriate urgency without panic\n- Prioritize immediate actionable steps\n- Be concise and direct\n- Emphasize time-sensitive actions',
       fr: '- Transmettez l\'urgence appropriée sans panique\n- Priorisez les étapes immédiates et exploitables\n- Soyez concis et direct\n- Mettez l\'accent sur les actions urgentes',
+      sw: '- Toa dharura inayofaa bila hofu\n- Weka kipaumbele hatua za haraka zinazoweza kutendeka\n- Kuwa mfupi na moja kwa moja\n- Sisitiza vitendo vinavyotegemea muda',
     },
     encouraging: {
       en: '- Use positive, encouraging language\n- Celebrate their proactive approach\n- Build confidence\n- Provide motivating guidance',
       fr: '- Utilisez un langage positif et encourageant\n- Célébrez leur approche proactive\n- Renforcez la confiance\n- Fournissez des conseils motivants',
+      sw: '- Tumia lugha chanya na ya kutia moyo\n- Sherehekea mkakati wao wa mapema\n- Jenga ujasiri\n- Toa mwongozo wa kuhamasisha',
     },
   };
   
   return instructions[tone][language];
 }
 
-function getStressAdjustment(stress: StressLevel, language: 'en' | 'fr'): string {
+function getStressAdjustment(stress: StressLevel, language: 'en' | 'fr' | 'sw'): string {
   const adjustments = {
     critical: {
       en: '- User is in critical distress - prioritize immediate safety\n- Keep responses SHORT and ACTION-ORIENTED\n- Direct them to emergency resources FIRST',
       fr: '- L\'utilisateur est en détresse critique - priorisez la sécurité immédiate\n- Gardez les réponses COURTES et ORIENTÉES ACTION\n- Dirigez-les vers les ressources d\'urgence EN PREMIER',
+      sw: '- Mtumiaji yu katika msongo mkubwa - weka kipaumbele usalama wa haraka\n- Weka majibu MAFUPI na YA VITENDO\n- Waelekeze kwenye rasilimali za dharura KWANZA',
     },
     high: {
       en: '- User is highly stressed - be extra clear and supportive\n- Break down information into small, manageable steps\n- Offer immediate next actions',
       fr: '- L\'utilisateur est très stressé - soyez très clair et solidaire\n- Décomposez les informations en petites étapes gérables\n- Proposez des actions immédiates',
+      sw: '- Mtumiaji ana msongo mkubwa - kuwa wazi kabisa na wa kusaidia\n- Gawanya habari katika hatua ndogo zinazoweza kudhibitiwa\n- Toa vitendo vya haraka vya kufuata',
     },
     moderate: {
       en: '- User is somewhat stressed - balance information with reassurance\n- Provide thorough but clear explanations',
       fr: '- L\'utilisateur est quelque peu stressé - équilibrez information et réconfort\n- Fournissez des explications complètes mais claires',
+      sw: '- Mtumiaji ana msongo kidogo - sawazisha habari na kutia moyo\n- Toa maelezo kamili lakini wazi',
     },
     low: {
       en: '- User is relatively calm - can provide more detailed information\n- Focus on comprehensive guidance',
       fr: '- L\'utilisateur est relativement calme - peut fournir des informations plus détaillées\n- Concentrez-vous sur des conseils complets',
+      sw: '- Mtumiaji yu tulivu kiasi - unaweza kutoa habari za kina zaidi\n- Zingatia mwongozo kamili',
     },
   };
   

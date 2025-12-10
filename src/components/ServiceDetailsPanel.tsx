@@ -6,7 +6,7 @@ import { submitServiceRating, getServiceRatings, getServiceRatingComments, type 
 
 interface ServiceDetailsPanelProps {
   service: EnrichedServiceEntry;
-  language: 'en' | 'fr';
+  language: 'en' | 'fr' | 'sw';
   onClose: () => void;
   userLocation?: { lat: number; lng: number } | null;
   isLoading?: boolean;

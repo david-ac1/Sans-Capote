@@ -6,7 +6,7 @@ import { formatDistance, getStatusText } from '../lib/places-api';
 
 interface ServiceStatusBadgeProps {
   service: EnrichedServiceEntry;
-  language?: 'en' | 'fr';
+  language?: 'en' | 'fr' | 'sw';
   showDistance?: boolean;
   showRating?: boolean;
 }
@@ -62,7 +62,7 @@ export function ServiceStatusBadge({
 
 interface OpeningHoursDisplayProps {
   service: EnrichedServiceEntry;
-  language?: 'en' | 'fr';
+  language?: 'en' | 'fr' | 'sw';
 }
 
 export function OpeningHoursDisplay({ 
@@ -76,6 +76,8 @@ export function OpeningHoursDisplay({
       <div className="text-sm text-gray-400">
         {language === 'fr' 
           ? 'Horaires non disponibles' 
+          : language === 'sw'
+          ? 'Masaa hayapatikani'
           : 'Hours not available'}
       </div>
     );
@@ -84,7 +86,7 @@ export function OpeningHoursDisplay({
   return (
     <div className="space-y-1">
       <h4 className="text-sm font-semibold text-gray-300">
-        {language === 'fr' ? 'Horaires d\'ouverture' : 'Opening Hours'}
+        {language === 'fr' ? 'Horaires d\'ouverture' : language === 'sw' ? 'Masaa ya Kufungua' : 'Opening Hours'}
       </h4>
       <ul className="text-xs text-gray-400 space-y-0.5">
         {hours.map((hour: string, index: number) => (
@@ -97,7 +99,7 @@ export function OpeningHoursDisplay({
 
 interface ServiceContactInfoProps {
   service: EnrichedServiceEntry;
-  language?: 'en' | 'fr';
+  language?: 'en' | 'fr' | 'sw';
 }
 
 export function ServiceContactInfo({ 
@@ -143,7 +145,7 @@ export function ServiceContactInfo({
             rel="noopener noreferrer"
             className="text-blue-400 hover:text-blue-300 hover:underline truncate"
           >
-            {language === 'fr' ? 'Visiter le site' : 'Visit website'}
+            {language === 'fr' ? 'Visiter le site' : language === 'sw' ? 'Tembelea tovuti' : 'Visit website'}
           </a>
         </div>
       )}

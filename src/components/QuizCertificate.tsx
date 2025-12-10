@@ -6,7 +6,7 @@ interface QuizCertificateProps {
   score: number;
   correctAnswers: number;
   totalQuestions: number;
-  language: 'en' | 'fr';
+  language: 'en' | 'fr' | 'sw';
   onClose: () => void;
 }
 

@@ -52,7 +52,7 @@ interface AIDiscoveryFilters {
 /**
  * Prompt engineering for Gemini service discovery
  */
-function buildDiscoveryPrompt(country: string, filters: AIDiscoveryFilters, language: 'en' | 'fr'): string {
+function buildDiscoveryPrompt(country: string, filters: AIDiscoveryFilters, language: 'en' | 'fr' | 'sw'): string {
   const filterDescriptions: string[] = [];
   
   if (filters.lgbtFriendly) filterDescriptions.push("LGBTQIA+ friendly and affirming");
@@ -121,7 +121,7 @@ JSON format only:
 export async function discoverServices(
   country: CountryCode,
   filters: AIDiscoveryFilters = {},
-  language: 'en' | 'fr' = 'en'
+  language: 'en' | 'fr' | 'sw' = 'en'
 ): Promise<AIDiscoveredService[]> {
   try {
     const prompt = buildDiscoveryPrompt(country, filters, language);

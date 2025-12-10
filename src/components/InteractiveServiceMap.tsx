@@ -18,7 +18,7 @@ interface InteractiveServiceMapProps {
     openNow: boolean;
     rating: number;
   };
-  language: 'en' | 'fr';
+  language: 'en' | 'fr' | 'sw';
   mapCenter?: { lat: number; lng: number; zoom: number };
 }
 

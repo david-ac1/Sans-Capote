@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { QuizQuestion, getRandomQuestions } from '@/data/hivQuizQuestions';
 
 interface HIVQuizGameProps {
-  language: 'en' | 'fr';
+  language: 'en' | 'fr' | 'sw';
   onComplete: (score: number, correctAnswers: number, totalQuestions: number) => void;
 }
 
