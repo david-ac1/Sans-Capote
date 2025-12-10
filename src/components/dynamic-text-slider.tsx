@@ -10,7 +10,7 @@ const COS_THETA = Math.cos(THETA);
 const SIN_THETA = Math.sin(THETA);
 
 /** Utility */
-const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
+const clamp = (v: number, min: number, max: number): number => Math.min(Math.max(v, min), max);
 
 /**
  * The visible heading that houses the range‑slider.
