@@ -18,7 +18,7 @@ const clamp = (v: number, min: number, max: number): number => Math.min(Math.max
  * always clips precisely, regardless of font‑loading or window size.
  */
 function TitleComponent() {
-  const measureRef = useRef(null);
+  const measureRef = useRef<HTMLSpanElement>(null);
   const [textWidth, setTextWidth] = useState(408); // sensible default until measured
 
   // Re‑measure whenever fonts load or the viewport resizes
