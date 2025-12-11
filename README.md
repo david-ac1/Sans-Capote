@@ -7,7 +7,11 @@
 # Sans-Capote: Voice-First AI Sexual Health Guide
 #Demo Video: 
 
-https://github.com/user-attachments/assets/6331c2a4-f940-4d7e-a2df-f2d151917725
+
+https://github.com/user-attachments/assets/2a0ba258-14e8-4acd-afd9-4f291ed90576
+
+
+
 
 
 
