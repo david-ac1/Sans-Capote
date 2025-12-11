@@ -5,6 +5,11 @@
 <div align="center">
 
 # Sans-Capote: Voice-First AI Sexual Health Guide
+#Demo Video: 
+
+https://github.com/user-attachments/assets/6331c2a4-f940-4d7e-a2df-f2d151917725
+
+
 
 **Sans-Capote is a voice-first, anonymous sexual-health companion for African contexts. Users speak to get immediate, stigma-free guidance (PEP/PrEP, STI triage, crisis assessment), discover local judgement-free clinics on a map, and SMS service details to their phone — all without logging in. We prioritize privacy, offline access, and community-verified clinic ratings to reduce barriers that keep people from seeking care.**
 
@@ -20,7 +25,8 @@
 > **Note for Reviewers:** We acknowledge the dual meaning and welcome feedback on whether a different name (e.g., "Open Health," "Clear Talk," "Sans Tabou") would better serve our mission while maintaining cultural sensitivity.
 
 ## 🌍 What is Sans-Capote?
-<img width="1919" height="828" alt="Screenshot 2025-12-10 141838" src="https://github.com/user-attachments/assets/34cce843-0171-4677-b1d1-7534a11d8b98" />
+<img width="1918" height="829" alt="Screenshot 2025-12-10 164532" src="https://github.com/user-attachments/assets/1971e1d0-2427-4ef7-96f9-80eaf4ce851d" />
+
 
 
 Combining **Google Gemini** for intelligent conversation, **ElevenLabs** for natural voice output, and **Supabase** for community ratings, Sans-Capote provides accessible, private, and culturally-sensitive health guidance via voice or text—even offline.
