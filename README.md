@@ -194,7 +194,7 @@ Our initial focus on **Nigeria, South Africa, Kenya, Uganda, Rwanda, and Ghana**
 
 **Misinformation Crisis:**
 - Widespread myths about HIV transmission (mosquito bites, witchcraft, sharing utensils)
-- Language barriers (English/French) and stigma prevent people from seeking accurate information
+- Language barriers and stigma prevent people from seeking accurate information
 
 **Digital Opportunity:**
 - 60%+ mobile penetration creates opportunity for voice-first, SMS-based health education
@@ -205,7 +205,7 @@ Sans-Capote addresses these challenges by providing **accurate, stigma-free info
 **Sans-Capote's Solution:**
 - **Voice-Driven:** For users with limited literacy or privacy concerns
 - **Offline-Capable:** Works with spotty connectivity (PWA + local data)
-- **Culturally Sensitive:** Country-specific guidance, bilingual (EN/FR), non-judgmental
+- **Culturally Sensitive:** Country-specific guidance, multilingual (EN/FR/SW), non-judgmental
 - **AI-Powered:** Gemini provides intelligent, conversational responses (not scripts)
 - **Community-Verified:** Supabase-powered ratings help users find judgement-free services
 
@@ -347,7 +347,7 @@ sans-capote/
 │   │   ├── servicesDirectory.ts  # 40+ verified services
 │   │   └── countryGuides.ts      # Country-specific info
 │   └── i18n/
-│       └── strings.ts      # Bilingual UI strings
+│       └── strings.ts      # multilingual UI strings
 ├── public/
 │   └── sw.js              # Service worker for PWA
 ├── supabase-setup.sql     # Database schema for ratings
@@ -434,7 +434,7 @@ Implementation details: `src/lib/telemetry.ts` and `src/app/api/analytics/route.
 | **Technological Excellence** | Advanced TTS caching, retry logic, emotional voice adaptation, Supabase integration, AI service discovery, production error handling | `src/lib/tts-service.ts`, `src/lib/supabase.ts`, `src/lib/ai-service-discovery.ts` |
 | **Design & UX** | WCAG AA accessible, live captions, keyboard nav, interactive maps, community ratings UI, mobile-optimized | `src/components/InteractiveServiceMap.tsx`, `src/components/ServiceDetailsPanel.tsx` |
 | **Potential Impact** | Addresses stigma & access barriers in sub-Saharan Africa; offline-capable, privacy-first, community-driven ratings | Crisis mode + 40+ verified services + anonymous ratings |
-| **Quality of Idea** | Voice-driven health education for low-literacy users; culturally-sensitive, bilingual, AI-powered discovery | EN/FR support, 6 countries, Gemini-powered service finding |
+| **Quality of Idea** | Voice-driven health education for low-literacy users; culturally-sensitive, multilingual, AI-powered discovery | EN/FR/SW support, 6 countries, Gemini-powered service finding |
 | **ElevenLabs Integration** | Emotional voice settings, phrase preloading, smart caching, graceful degradation | 70% reduction in API calls, 99.9% reliability |
 
 ---
