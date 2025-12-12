@@ -8,7 +8,10 @@
 #Demo Video: 
 
 
-https://github.com/user-attachments/assets/2a0ba258-14e8-4acd-afd9-4f291ed90576
+https://github.com/user-attachments/assets/04393f9a-6815-4ee2-8a2f-b670894983a2
+
+
+
 
 
 
@@ -29,7 +32,10 @@ https://github.com/user-attachments/assets/2a0ba258-14e8-4acd-afd9-4f291ed90576
 > **Note for Reviewers:** We acknowledge the dual meaning and welcome feedback on whether a different name (e.g., "Open Health," "Clear Talk," "Sans Tabou") would better serve our mission while maintaining cultural sensitivity.
 
 ## 🌍 What is Sans-Capote?
-<img width="1918" height="829" alt="Screenshot 2025-12-10 164532" src="https://github.com/user-attachments/assets/1971e1d0-2427-4ef7-96f9-80eaf4ce851d" />
+![Sans_Capote](https://github.com/user-attachments/assets/3f31ba97-9bd8-4a9d-bc0e-e9947ec6b60c)
+<img width="1918" height="827" alt="Screenshot 2025-12-12 114315" src="https://github.com/user-attachments/assets/f37e548b-5d13-4990-a7c4-1026fc190b70" />
+<img width="1918" height="823" alt="Screenshot 2025-12-12 114410" src="https://github.com/user-attachments/assets/d4db847a-f734-48ba-8025-b56e257855a5" />
+
 
 
 
@@ -57,9 +63,9 @@ This experience made me determined to create Sans-Capote: a platform where peopl
 
 ---
 
-## ⚡ Quick Summary (For Busy Judges)
+## ⚡ Quick Summary
 
-**The Problem**: 37.7M people live with HIV globally, yet 80% lack access to preventive services. In Sub-Saharan Africa, stigma and misinformation prevent young people from seeking sexual health information, leading to preventable infections and delayed treatment.
+**The Problem**: Over 37.7M people live with HIV globally, yet 80% lack access to preventive services. In Sub-Saharan Africa, stigma and misinformation prevent young people from seeking sexual health information, leading to preventable infections and delayed treatment.
 
 **Our Solution**: Sans-Capote is a voice-first, anonymous AI companion that provides stigma-free sexual health guidance. Users speak their questions, receive immediate AI responses via natural voice (ElevenLabs), discover judgment-free clinics on an interactive map, and can SMS service details to their phone—all without creating an account.
 
@@ -136,6 +142,7 @@ Open [http://localhost:3000](http://localhost:3000) and navigate to **Crisis** o
 6. **Rate services:** Submit community ratings with comments (stored in Supabase)
 7. View aggregate ratings and read other users' experiences
 8. **📱 NEW: Send to My Phone** - Text yourself service details via SMS (Africa's Talking)
+![nav-clip](https://github.com/user-attachments/assets/16544703-7bf7-44ae-8dc7-2ce4c2c492b5)
 
 ### General Q&A (Guide Mode)
 1. Navigate to `/guide` page
