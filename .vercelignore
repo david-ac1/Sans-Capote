@@ -1,0 +1,13 @@
+# Vercel ignore file - exclude unnecessary files from deployment
+node_modules
+.git
+.env.local
+.env*.local
+*.log
+.DS_Store
+coverage
+.vscode
+.idea
+README.md
+DEBUNK_THE_STIGMA.md
+.gitignore
