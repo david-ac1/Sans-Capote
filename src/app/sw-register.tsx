@@ -18,6 +18,24 @@ export function SwRegister() {
     // Only register the service worker in production
     navigator.serviceWorker
       .register("/sw.js")
+      .then((registration) => {
+        // Check for updates every time the page loads
+        registration.update();
+        
+        // Listen for updates
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          if (newWorker) {
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                // New service worker available, reload to use it
+                console.log('New service worker available, reloading...');
+                window.location.reload();
+              }
+            });
+          }
+        });
+      })
       .catch((err) => {
         console.error("Service worker registration failed", err);
       });
