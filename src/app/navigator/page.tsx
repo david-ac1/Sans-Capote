@@ -306,18 +306,39 @@ export default function NavigatorPage() {
           lat: position.coords.latitude,
           lng: position.coords.longitude,
         });
+        setLocationError(null);
       },
       (error) => {
-        console.error("Geolocation error:", error);
-        setLocationError(
-          language === 'fr'
-            ? "Impossible d'obtenir votre position. Veuillez activer la géolocalisation."
-            : "Unable to get your location. Please enable location services."
-        );
+        console.error("Geolocation error:", error.code, error.message);
+        
+        let errorMsg = '';
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMsg = language === 'fr'
+              ? "Permission refusée. Cliquez sur l'icône de localisation dans la barre d'adresse pour autoriser."
+              : "Permission denied. Click the location icon in your address bar to allow access.";
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMsg = language === 'fr'
+              ? "Position indisponible. Vérifiez votre connexion GPS/WiFi."
+              : "Location unavailable. Check your GPS/WiFi connection.";
+            break;
+          case error.TIMEOUT:
+            errorMsg = language === 'fr'
+              ? "Temps d'écoule dépassé. Essayez de recharger la page."
+              : "Location request timed out. Try refreshing the page.";
+            break;
+          default:
+            errorMsg = language === 'fr'
+              ? "Impossible d'obtenir votre position. Les services fonctionnent toujours sans localisation."
+              : "Unable to get your location. Services still work without location.";
+        }
+        
+        setLocationError(errorMsg);
       },
       {
-        enableHighAccuracy: true,
-        timeout: 10000,
+        enableHighAccuracy: false, // Changed to false for better browser compatibility
+        timeout: 15000, // Increased timeout
         maximumAge: 300000, // Cache for 5 minutes
       }
     );
@@ -344,9 +365,34 @@ export default function NavigatorPage() {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
           });
+          setLocationError(null);
         },
         (error) => {
-          console.error("Geolocation error:", error);
+          console.error("Geolocation error:", error.code, error.message);
+          
+          let errorMsg = '';
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              errorMsg = language === 'fr'
+                ? "Permission refusée. Les services restent accessibles sans localisation."
+                : "Location permission denied. Services still work without location.";
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMsg = language === 'fr'
+                ? "Position indisponible. Vous pouvez toujours chercher par pays."
+                : "Location unavailable. You can still search by country.";
+              break;
+            case error.TIMEOUT:
+              errorMsg = language === 'fr'
+                ? "Délai d'attente expiré. Continuez sans localisation automatique."
+                : "Location timeout. Continue without automatic location.";
+              break;
+            default:
+              errorMsg = language === 'fr'
+                ? "Localisation non disponible. Utilisez les filtres par pays."
+                : "Location not available. Use country filters instead.";
+          }
+          
           setLocationError(
             language === 'fr'
               ? "Impossible d'obtenir votre position. Veuillez activer la géolocalisation."
