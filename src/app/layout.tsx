@@ -11,12 +11,18 @@ const sora = Sora({
   variable: "--font-sora",
   subsets: ["latin"],
   weight: ["300", "400", "600", "700", "800"],
+  display: "swap", // Prevents font from blocking render
+  preload: true, // Explicitly control preloading
+  fallback: ['system-ui', 'arial'], // Fallback fonts
 });
 
 const jetbrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains-mono",
   subsets: ["latin"],
   weight: ["400", "500", "700"],
+  display: "swap", // Prevents font from blocking render
+  preload: false, // Don't preload monospace font (only used in specific places)
+  fallback: ['courier', 'monospace'], // Fallback fonts
 });
 
 export const metadata: Metadata = {
